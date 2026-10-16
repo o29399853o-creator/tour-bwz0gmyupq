@@ -5,8 +5,7 @@ window.SITE={
   /* the tour: every page is one stop on this line (top bar, page transition, previous / next, ← →) */
   stops:[
     {route:'#/',label:'首頁',sub:'跑道總覽'},
-    {route:'#/zone/1',label:'工區一',zone:1},
-    {route:'#/zone/2',label:'工區二',zone:2},
+    {route:'#/zone/1',label:'工區一、二',zone:1,zones:[1,2],name:'工區一、二',cap:'03 端、21 端水泥混凝土鋪面重建'},   // 2026-10-16 user:「工區一二這兩站合併」(#/zone/2 opens this page at zone 2)
     {route:'#/zone/3',label:'工區三',zone:3},
     {route:'#/zone/4',label:'工區四',zone:4},
     {route:'#/phase',label:'配合移航程序標線繪製',sub:'STEP1～6　跑道頭移設與標線'},
@@ -73,11 +72,23 @@ window.SITE={
      2026-10-12 user: "第五站，施工前拿掉" — the steps start at STEP1 (top_before stays in assets, unused) */
   phase:[
     {k:'STEP1',img:['top_mark','top_black'],thr03:0,thr21:2755.244,red:[[0,712]],lab:['紅色＝要以黑漆覆蓋','覆蓋後']},
-    {k:'STEP2',img:['top_black','top_after'],thr03:712,thr21:2755.244,closed:[0,512.65],x:[194,494],chev:[512.65,712],lab:['STEP1 覆蓋後','新設移航標線'],obl:'obl03'},
+    {k:'STEP2',img:['top_black','top_after'],thr03:712,thr21:2755.244,closed:[0,512.65],x:[194,494],chev:[512.65,712],lab:['STEP1 覆蓋後','新設移航標線'],obl:'obl03',
+      // 2026-10-16 r2 (user:「新增的規範重點移除，而在原有標線示意圖中，著重說明著陸區標線這點就好」): the touchdown zone pairs only,
+      // at the middle of each 22.5 m stripe as drawn on D-18～D-20 (and in the model): 3+3 at 150 / 300 m, aiming point 400 m, 2+2 at 600 m,
+      // 1+1 at 750 / 900 m. r1 had a ✓ here and missed the 750 / 900 m pairs.
+      chkY:[.378,.877],tdz:1,chk:[[873,'ok','150 m｜6 條','u'],[1023,'ok','300 m｜6 條','d'],[1173,'ok','450 m｜近著陸點，刪去','u2'],[1323,'ok','600 m｜4 條','d'],
+        [1473,'ng','750 m｜多 1 對','u'],[1623,'ng','900 m｜多 1 對','u2']]},
     {k:'STEP3',img:['t3_mark','t3_black'],thr03:712,thr21:2755.244,closed:[0,512.65],x:[194,494],chev:[512.65,712],red:[[512.65,760]],lab:['紅色＝要以黑漆抹除','抹除後']},
     {k:'STEP4',img:['t3_black','t4_new'],thr03:0,thr21:2755.244,lab:['STEP3 抹除後','03 端標線復原']},
     {k:'STEP5',img:['t5_mark','t5_black'],thr03:0,thr21:2755.244,red:[[2043,2755.244]],lab:['紅色＝要以黑漆覆蓋','覆蓋後']},
-    {k:'STEP6',img:['t5_black','t6_new'],thr03:0,thr21:2043,closed:[2238.384,2755.244],x:[2256,2557],chev:[2043,2238.384],lab:['STEP5 覆蓋後','新設移航標線'],obl:'obl21'}],
+    {k:'STEP6',img:['t5_black','t6_new'],thr03:0,thr21:2043,closed:[2238.384,2755.244],x:[2256,2557],chev:[2043,2238.384],lab:['STEP5 覆蓋後','新設移航標線'],obl:'obl21',
+      // 2026-10-16 r2: touchdown zone pairs only (D-33～D-36 and the model: the same pattern measured from 2K+043)
+      chkY:[.249,.751],tdz:1,chk:[[1882,'ok','150 m｜6 條','u'],[1732,'ok','300 m｜6 條','d'],[1582,'ok','450 m｜近著陸點，刪去','u2'],[1432,'ok','600 m｜4 條','d'],
+        [1282,'ng','750 m｜多 1 對','u'],[1132,'ng','900 m｜多 1 對','d']]}],
+  /* 05 站 STEP2 / STEP6 side note. 民用機場設計暨運作規範 ATP-AE-100512 (114.02.20) 5.2.6.3 (p.5-10): 「1500m（含）以上，小於 2400m」→
+     「4（6,6,4,4）」,「2400m（含）以上」→「6（6,6,4,4,2,2）」; 5.2.6.4 (p.5-11):「著陸區標線自距跑道頭 150m 起並以 150m 間距繪設，然與著陸點標線
+     相重合或位於著陸點標線 50m 範圍內者應刪去。」 The source is not shown (user 2026-10-16:「來源不用加上去」). */
+  tdzNote:'移航後可用長度約 2,043 m，屬 1,500～2,400 m：著陸區標線應為 4 對（6、6、4、4 條），自跑道頭 150 m 起每 150 m 一對；450 m 那對落在著陸點標線 50 m 內，刪去。圖上另有 750、900 m 兩對，是 2,400 m 以上跑道的配置，不符。',
   /* 施工管制: 24 h clock rings */
   /* user 2026-10-10: zone-1 barriers stay up all day; only the ones in front of taxiway 2 come down (up 17:00-21:00); no counts */
   rings:[{h0:0,h1:24,col:'#ff6b5e',name:'工區一　木製圍籬（03 端）',t:'24 小時圍設',media:'barrier'},
@@ -91,9 +102,25 @@ window.SITE={
   signs:{title:'標誌牌',sub:'資訊指示牌（黑底黃字）與千呎牌（跑道剩餘距離，千呎）。'},
   /* PAPI: wording and numbers from drawing E-38 臨時PAPI 設置詳圖（施工階段一／階段二）(user 2026-10-10: "PAPI運作方式請參考圖說E-38") */
   papi:{title:'精確進場滑降指示燈（PAPI）',
-    lead:"跑道旁一排 4 盞燈（A～D），每盞有自己的仰角設定：飛機在設定角以上看到白光、以下看到紅光。3° 進場斜面的設定為 A 2°30'、B 2°50'、C 3°10'、D 3°30'，看到幾盞白、幾盞紅，就知道自己飛得太高還是太低。",
+    // user 2026-10-16: 「放大四倍那邊請標註距離道間邊線15m，標註在上面，不要指標文字」. E-38: D 距道肩邊線 15.00 (道肩邊線 = runway / shoulder
+    // edge). In the all.jpg frame the runway edge stripe on the PAPI row (y 615 px) is at x ≈ 845 px: 113 px from unit D = 15 m at the
+    // 9 m unit spacing (67.5 px), so the model agrees with E-38.
+    // 2026-10-16 (user:「這張圖可以幫我截2白2紅嗎?」): the photo is now papi_2w2r.jpg (work/papi_still_20261016/render_papi_2w2r.py: S12 frame 313,
+    // camera lowered to 3.0° above the row -> A B white, C D red); edge = the projected point 15 m from unit D toward the runway
+    edge:{x:0.4397,t:'距道肩邊線 15 m'},
+    lead:"跑道旁一排 4 盞燈（A～D），每盞有自己的仰角設定：飛機在設定角以上看到白光、以下看到紅光。3° 進場斜面的設定為 A 2°30'、B 2°50'、C 3°10'、D 3°30'，看到幾盞白、幾盞紅，就知道自己飛得太高還是太低。降到決斷高度（DH）時要判斷：看得到跑道、而且在進場斜面附近才繼續落地；看不到跑道，或太高、太低，就要重飛。",
     units:[['A',2.5,"2°30'"],['B',2+50/60,"2°50'"],['C',3+10/60,"3°10'"],['D',3.5,"3°30'"]],
     states:[['TOO HIGH','太高'],['SLIGHTLY HIGH','稍高'],['ON CORRECT APPROACH PATH','保持高度'],['SLIGHTLY LOW','稍低'],['TOO LOW','太低']],   // by number of white units 4..0
+    // 決斷高度 (2026-10-16 r2, user:「不要只新增一條決斷點的線，請融入並增加互動」): wording for the side view and the pilot panel; the DH and
+    // cloud-base heights in the drawing are schematic (no figure is given for this airport)
+    dh:{line:'決斷高度（DH）',
+      // r3 (user:「沒有示意出什麼狀況要重飛」): the rules, always on screen; the one that applies lights up while dragging. 太高／太低 at DH:
+      // the aircraft must be able to land with a normal descent from there (general rule for continuing below DH), not from E-38
+      head:'到決斷高度時怎麼判斷？',sub:'拖曳飛機到起點後放開，飛到決斷高度時符合的那條會亮起；也可以點一條看示範',
+      rules:[['go',1,'看得到跑道，PAPI 在斜面附近','繼續落地'],['high',0,'太高，PAPI 全白','重飛'],['low',0,'太低，PAPI 全紅','重飛']],
+      st:{above:'還沒到決斷高度：看 PAPI 修正高度，繼續下降',go:'到決斷高度，看得到跑道、在斜面附近：可以繼續落地',
+        high:'到決斷高度還太高（PAPI 全白），沒辦法正常下降落地：必須重飛',
+        low:'到決斷高度太低（PAPI 全紅）：必須重飛',goa:'重飛：爬升離開，重新進場',land:'落地'}},
     facts:[['排列','A～D 一排，D 最靠近跑道；D 距道肩邊線 15 m，燈與燈間距 9 m'],['基座','臨時基礎座 1.5 m × 1.5 m'],['安裝','燈箱在同一水平線上，中心點與跑道中心線等高，並與跑道中心線垂直'],
       ['施工期間','配合跑道頭移設重新建置臨時 PAPI：03 臨時跑道（施工階段一）、21 臨時跑道（施工階段二）']],
     src:'依圖說 E-38　臨時PAPI 設置詳圖（施工階段一／階段二）'},

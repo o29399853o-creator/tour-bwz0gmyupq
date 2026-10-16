@@ -22,7 +22,7 @@ function label(route){
   svg.innerHTML='';const X0=10,X1=410,T=8,B=26,sx=s=>X0+(X1-X0)*s/L;
   const fills=[],O={sx,TOP:T,BOT:B,RY:(T+B)/2,HI:(B-T)/2-5,SD:5};
   el('path',{d:G.runwayOutline(X0,X1,O).d,fill:'rgba(255,255,255,.04)'},svg);   // zones 1 / 2 hammer-shaped
-  for(let k=1;k<=4;k++){const z=S.zones[k];if(zi&&k!==zi)continue;const zx=sx(z.span[0]),zw=sx(z.span[1])-zx;
+  for(let k=1;k<=4;k++){const z=S.zones[k];if(zi&&!(zi<=2?[1,2]:[zi]).includes(k))continue;/* zones 1, 2: one stop since 2026-10-16 */const zx=sx(z.span[0]),zw=sx(z.span[1])-zx;
     G.zoneRects(z,O).forEach(r=>fills.push({r:el('rect',{x:r.x,y:r.y,width:0,height:r.h,fill:COL[k],opacity:zi?1:.75},svg),w:r.w,o:r.x-zx,zw}))}   // zone 3 with its taxiway mouths
   const OL=G.runwayOutline(X0,X1,O),len=OL.len;const ol=el('path',{d:OL.d,fill:'none',stroke:'#ffcc00','stroke-width':1.6,'stroke-dasharray':len,'stroke-dashoffset':len},svg);
   return ()=>{show();tween(520,k=>ol.setAttribute('stroke-dashoffset',len*(1-k)),ease.io);

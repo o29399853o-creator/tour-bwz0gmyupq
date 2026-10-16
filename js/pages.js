@@ -5,7 +5,8 @@
 const {h,$,$$,el}=G;const S=window.SITE,A=window.ASSETS;
 G.pages={};
 G.idx=r=>S.stops.findIndex(s=>s.route===r);
-const nameOf=s=>s.zone?S.zones[s.zone].name:s.label,subOf=s=>s.zone?S.zones[s.zone].cap:s.sub;
+const nameOf=s=>s.name||(s.zone?S.zones[s.zone].name:s.label),subOf=s=>s.cap||(s.zone?S.zones[s.zone].cap:s.sub);   // name / cap: the merged zone 1 + 2 stop
+G.zoneStop=i=>G.idx(i<=2?'#/zone/1':'#/zone/'+i);   // the stop that shows zone i (zones 1, 2 share one since 2026-10-16)
 G.titleOf=r=>{const s=S.stops[G.idx(r)];return s?nameOf(s)+'　'+subOf(s):r};
 G.stopNo=i=>i?`第 ${G.pad(i)} 站 ／ 共 ${G.pad(S.stops.length-1)} 站`:'起點';
 const head=(route,extra)=>{const i=G.idx(route),st=S.stops[i],z=st.zone;
@@ -30,7 +31,7 @@ G.pages.home=function(p,ctx){
   const root=page('home',`<div class="home-head"><h1>${S.title}</h1><div class="rule"></div><p class="sub">${S.sub}</p></div>
     <div class="hub-wrap"><svg class="hub" aria-label="跑道總圖"></svg>
       <div class="peek"><div class="im"><img alt=""></div><div class="tx"><small></small><b></b><span></span><em>點一下進入 ›</em></div></div></div>
-    <div class="zbtns">${[1,2,3,4].map(i=>`<a class="zbtn" href="#/zone/${i}" style="--zc:${G.COL[i]}"><i></i><span><small>${G.stopNo(i)}</small><b>${S.zones[i].name}</b><em>${S.zones[i].cap}</em></span></a>`).join('')}</div>
+    <div class="zbtns">${[1,2,3,4].map(i=>`<a class="zbtn" href="#/zone/${i}" style="--zc:${G.COL[i]}"><i></i><span><small>${G.stopNo(G.zoneStop(i))}</small><b>${S.zones[i].name}</b><em>${S.zones[i].cap}</em></span></a>`).join('')}</div>
     <div class="chips">${Object.entries(S.layers).map(([k,v])=>`<button class="chip${k==='zones'?' on':''}" data-layer="${k}">${v.label}</button>`).join('')}</div>
     <div class="layer-info"></div>
     <div class="start rv"><a class="go-btn" href="${S.stops[1].route}"><span>開始導覽</span><i class="chev"><b></b><b></b><b></b></i></a>${resume()}
@@ -45,7 +46,7 @@ G.pages.home=function(p,ctx){
   const hub=G.Hub($('.hub',root),{
     onZone:async i=>{peek.classList.remove('on');await hub.zoomTo(i);ctx.noWipe=true;location.hash=`#/zone/${i}`},   // the zoom is this transition
     onHover:(i,x,y)=>{if(!i){peek.classList.remove('on');loop(0);return}const r=wrap.getBoundingClientRect(),z=S.zones[i];
-      if(peek.dataset.z!==String(i)){peek.dataset.z=i;$('img',peek).src=A.hero[i].thumb;loop(i);$('small',peek).textContent=G.stopNo(i);$('b',peek).textContent=z.name;$('span',peek).textContent=z.cap;peek.style.setProperty('--zc',G.COL[i])}
+      if(peek.dataset.z!==String(i)){peek.dataset.z=i;$('img',peek).src=A.hero[i].thumb;loop(i);$('small',peek).textContent=G.stopNo(G.zoneStop(i));$('b',peek).textContent=z.name;$('span',peek).textContent=z.cap;peek.style.setProperty('--zc',G.COL[i])}
       let px=x-r.left+22,py=y-r.top+22;if(px+300>r.width)px=x-r.left-322;if(py+250>r.height)py=y-r.top-260;
       peek.style.left=px+'px';peek.style.top=Math.max(0,py)+'px';peek.classList.add('on')}});
   const info=$('.layer-info',root);
@@ -87,26 +88,31 @@ function wz4Viewer(host){
             {f:W.rest[4],enter:300,title:t(C[3]),sub:C[3][2],short:'接縫斷面',thumb:W.thumbs[4]}]});
 }
 G.pages.zone=function(n){
-  n=+n;const Z=S.zones[n],route='#/zone/'+n;const V={1:A.wz1&&S.pcc,2:A.wz2&&S.pcc,3:S.wz3,4:S.wz4}[n];
-  const root=page('zone',`${head(route,'<svg class="zone-strip"></svg>')}
-    <div class="zone-hero"><div class="player rv"></div><aside class="facts rv" data-d="150"><h3>重點數據</h3>${Z.facts.map(f=>`<div class="fact"><span>${f[0]}</span><b>${f[1]}</b></div>`).join('')}</aside></div>
-    <section class="block">${sec('斷面','鋪面分層',`依厚度比例由下往上疊出各層；${G.touch?'點':'滑鼠移到'}任一層看說明。${G.stacked()?'下方':'右邊'}是影片裡的分層模型。`)}
-      <div class="sec-grid"><div class="sec-card rv"><svg></svg></div><figure class="model rv" data-d="150"><img src="${A.layers[n]}" alt="${Z.name}分層模型"><figcaption>影片中的分層模型（浮起示意）</figcaption></figure></div>
-      ${Z.note?`<p class="note">${Z.note}</p>`:''}</section>
-    ${V?`<section class="block">${sec(V.kick,V.title,(G.touch&&V.leadTouch)||V.lead)}<div class="sv-host rv"></div>${V.quote?`<p class="note">${V.quote}</p>`:''}</section>`:''}
-    ${G.pager(route)}${G.footer()}`);
-  root.style.setProperty('--zc',G.COL[n]);
-  const showT=titleIn(root);const strip=G.ZoneStrip($('.zone-strip',root),n);
+  // 2026-10-16 (user:「工區一二這兩站合併」, 一頁上下兩段): #/zone/1 and #/zone/2 are one page, zone 1 above and zone 2 below;
+  // both are PCC 40 + CTB 30. r2 (user:「鋪面分層還有從掃紋到填縫這兩個重複地拿掉，然後工區二的動畫部分移到工區一下面」): the two model
+  // loops first (工區一, 工區二), then 鋪面分層 and 從掃紋到填縫 once, with zone 1's pictures
+  n=+n;const parts=n<=2?[1,2]:[n],route='#/zone/'+parts[0],VV={1:A.wz1&&S.pcc,2:A.wz2&&S.pcc,3:S.wz3,4:S.wz4},two=parts.length>1;
+  const hero=z=>{const Z=S.zones[z];
+    return `${two?`<h2 class="zpart-h rv" id="zp-${z}" style="--zc:${G.COL[z]}"><i></i>${Z.name}<small>${Z.cap}</small></h2>`:''}
+    <div class="zone-hero" data-z="${z}"><div class="player rv"></div><aside class="facts rv" data-d="150"><h3>重點數據</h3>${Z.facts.map(f=>`<div class="fact"><span>${f[0]}</span><b>${f[1]}</b></div>`).join('')}</aside></div>`};
+  const z0=parts[0],Z0=S.zones[z0],V=VV[z0],same=two?'工區一、二相同；':'';
+  const shared=`<section class="block">${sec('斷面','鋪面分層',`${same}依厚度比例由下往上疊出各層；${G.touch?'點':'滑鼠移到'}任一層看說明。${G.stacked()?'下方':'右邊'}是影片裡的分層模型。`)}
+      <div class="sec-grid"><div class="sec-card rv"><svg></svg></div><figure class="model rv" data-d="150"><img src="${A.layers[z0]}" alt="${Z0.name}分層模型"><figcaption>影片中的分層模型（浮起示意）</figcaption></figure></div>
+      ${Z0.note?`<p class="note">${Z0.note}</p>`:''}</section>
+    ${V?`<section class="block" data-z="${z0}">${sec(V.kick,V.title,same+((G.touch&&V.leadTouch)||V.lead))}<div class="sv-host rv"></div>${V.quote?`<p class="note">${V.quote}</p>`:''}</section>`:''}`;
+  const root=page('zone',`${head(route,'<svg class="zone-strip"></svg>')}${parts.map(hero).join('')}${shared}${G.pager(route)}${G.footer()}`);
+  root.style.setProperty('--zc',G.COL[parts[0]]);
+  const showT=titleIn(root);const strip=G.ZoneStrip($('.zone-strip',root),parts);
   // whole shot, ends on the exploded layers. B: phones take every second frame at half the rate (same length, half the data)
   // the MP4 when there is one (prep_site_extras_B.py), otherwise the frames
-  const HF=A.hero[n].frames,half=G.narrow(),hf=half?HF.filter((_,i)=>i%2===0||i===HF.length-1):HF;
-  const player=A.hero[n].mp4?G.HeroVideo($('.player',root),A.hero[n].mp4,HF,A.hero[n].fps,A.hero[n].hold)
-    :G.FramePlayer($('.player',root),hf,half?A.hero[n].fps/2:A.hero[n].fps,null,A.hero[n].hold);
-  const secv=G.Section($('.sec-card svg',root),Z.section,{total:Z.total});
-  const sv=n===3?wz3Viewer($('.sv-host',root)):n===4?wz4Viewer($('.sv-host',root)):n===1&&A.wz1?pccViewer($('.sv-host',root),A.wz1):n===2&&A.wz2?pccViewer($('.sv-host',root),A.wz2):null;
+  const players=parts.map(z=>{const H=A.hero[z],HF=H.frames,half=G.narrow(),hf=half?HF.filter((_,i)=>i%2===0||i===HF.length-1):HF,el_=$(`.zone-hero[data-z="${z}"] .player`,root);
+    return H.mp4?G.HeroVideo(el_,H.mp4,HF,H.fps,H.hold):G.FramePlayer(el_,hf,half?H.fps/2:H.fps,null,H.hold)});
+  const secv=G.Section($('.sec-card svg',root),S.zones[parts[0]].section,{total:S.zones[parts[0]].total});
+  const svs=parts.map(z=>{const host=$(`section[data-z="${z}"] .sv-host`,root);if(!host)return null;
+    return z===3?wz3Viewer(host):z===4?wz4Viewer(host):z===1&&A.wz1?pccViewer(host,A.wz1):z===2&&A.wz2?pccViewer(host,A.wz2):null});
   return {el:root,
     enter(){showT();strip.play();G.onView($('.sec-card',root),()=>secv.play(),.35)},
-    destroy(){player.destroy();if(sv)sv.destroy()}};
+    destroy(){players.forEach(p=>p.destroy());svs.forEach(v=>v&&v.destroy())}};
 };
 
 /* ================= 施工階段 ================= */
@@ -123,6 +129,7 @@ G.pages.phase=function(){
       <div class="ph-view"><div class="cmp-host stage"></div>
         <aside class="side"><div class="no"><b>01</b><span>/ ${G.pad(N)}</span></div><h3></h3><p></p><div class="legend"></div>
           <button class="obl" type="button"><img alt=""><span>斜看新跑道頭 ›</span></button></aside></div>
+      <p class="tdz-note" hidden></p>
       <p class="note">跑道示意圖的長度依 STA 比例、寬度放大；照片為同視角俯視全景，上下兩條分別是虛線框標示的兩段。</p>
     </section>
     ${G.pager(route)}${G.footer()}`);
@@ -131,10 +138,15 @@ G.pages.phase=function(){
   let cur=-1,timer=null;
   const rail=G.Rail($('.rail-host',root),steps.map(s=>({label:s.k})),i=>{stop();go(i)});   // numbered 1..6 (no 施工前 since 2026-10-12)
   function go(i){i=Math.max(0,Math.min(N-1,i));if(i===cur)return;cur=i;const s=steps[i];rail.set(i);map.go(i,s);
-    cmp.show(s.imgs[0].img,s.imgs[1]&&s.imgs[1].img,s.lab&&s.lab[0],s.lab&&s.lab[1],s.strips);
+    const rg=s.strips.map(t=>{const p=t.split('→');return [staOf(p[0]),staOf(p[1])]});   // the two photo strips (STA from - to)
+    const marks=(s.chk||[]).map(([sta,stt,t,p])=>{const k=sta<=rg[0][1]?0:1;return {x:(sta-rg[k][0])/(rg[k][1]-rg[k][0]),y:s.chkY[k],st:stt,t,p}});
+    cmp.show(s.imgs[0].img,s.imgs[1]&&s.imgs[1].img,s.lab&&s.lab[0],s.lab&&s.lab[1],s.strips,marks,marks.length?2:50);
     const no=$('.no b',side);no.classList.remove('flip');void no.offsetWidth;no.textContent=G.pad(i+1);no.classList.add('flip');
     const h3=$('h3',side);h3.classList.remove('on');h3.textContent=s.title;setTimeout(G.chars(h3,24),30);$('p',side).textContent=s.sub;
-    $('.legend',side).innerHTML=s.imgs[1]?`<span><i class="l"></i>左：${s.lab[0]}</span><span><i class="r"></i>右：${s.lab[1]}</span><small>拖曳畫面中間的把手比較前後</small>`:'<small>施工前的既有跑道標線</small>';
+    $('.legend',side).innerHTML=(s.imgs[1]?`<span><i class="l"></i>左：${s.lab[0]}</span><span><i class="r"></i>右：${s.lab[1]}</span><small>拖曳畫面中間的把手比較前後</small>`:'<small>施工前的既有跑道標線</small>')
+      +(s.chk?`<small class="chk-key">${[['ok','✓','符合'],['tbd','？','待確認'],['ng','✗','不符']].filter(([k])=>s.chk.some(c=>c[1]===k)).map(([k,b,t])=>`<b class="${k}">${b}</b>${t}`).join('　')}（對照規範）</small>`:'')
+;
+    const tz=$('.tdz-note',root);tz.hidden=!s.tdz;if(s.tdz)tz.innerHTML=`<b>著陸區標線</b>${S.tdzNote}`;   // r2: under the photo, full width
     const ob=$('.obl',side);ob.style.display=s.obl?'':'none';if(s.obl){$('img',ob).src=P[s.obl].img;ob.onclick=()=>G.lightbox(P[s.obl].img,P[s.obl].caption.join('　'))}
     side.classList.remove('swap');void side.offsetWidth;side.classList.add('swap')}
   const playB=$('.play',root);
@@ -179,7 +191,7 @@ G.pages.aids=function(){
     <section class="block">${sec('PAPI',S.papi.title,S.papi.lead)}<div class="papi-host rv"></div>
       <div class="papi-more rv"><dl class="src">${S.papi.facts.map(f=>`<dt>${f[0]}</dt><dd>${f[1]}</dd>`).join('')}</dl>
         <div class="papi-photo"></div></div>
-      <p class="note">${S.papi.src}。上方仰角圖為示意，角度放大畫出；${G.stacked()?'下方':'右側'}為模型畫面（兩個迴路全開的夜間畫面）。</p></section>
+      <p class="note">${S.papi.src}。上方仰角圖為示意，角度放大畫出，決斷高度也是示意位置；${G.stacked()?'下方':'右側'}為模型畫面（兩個迴路全開的夜間畫面）。</p></section>
     <section class="block">${sec('地下',X.s10.title,X.s10.sub+'。點畫面，地面打開看地下的管路。')}<div class="sv-host rv"></div></section>
     <section class="block">${sec('標誌牌',S.signs.title,S.signs.sub)}<div class="sign rv"><div class="player"></div></div></section>
     ${G.pager(route)}${G.footer()}`);
@@ -192,7 +204,7 @@ G.pages.aids=function(){
     states:[{f:1,title:'地面',sub:'跑道邊線外的草地，看不到地下的手孔與管路。',short:'地面',thumb:X.s10.thumbs[0],spots:[]},   // video labels start at frame 121
             {f:121,title:'打開看地下',sub:X.s10.sub,short:'地下管路',thumb:X.s10.thumbs[1]}]});
   const sign=G.Loop($('.sign .player',root),X.s11);
-  const papi=G.Papi($('.papi-host',root),S.papi);G.PapiPhoto($('.papi-photo',root),X.papi.img,X.papi.units,'模型夜間畫面：跑道左側一排 4 盞 PAPI（兩個迴路全開）');
+  const papi=G.Papi($('.papi-host',root),S.papi);G.PapiPhoto($('.papi-photo',root),X.papi.img,X.papi.units,'模型夜間畫面：在 3° 進場斜面上看，跑道左側一排 4 盞 PAPI 為 2 白 2 紅（兩個迴路全開）',S.papi.edge);
   // B: the chips jump to a section; the one on screen is lit while scrolling
   const tocB=$$('.toc button',root),secs=tocB.map(b=>$(b.dataset.s,root).closest('section'));
   tocB.forEach((b,i)=>b.onclick=()=>{const y=secs[i].getBoundingClientRect().top+scrollY-120;window.scrollTo({top:y,behavior:G.reduced?'auto':'smooth'})});

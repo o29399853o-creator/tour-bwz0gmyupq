@@ -249,20 +249,23 @@ G.StateViewer=function(root,cfg){
 /* ---------- before / after: drag the handle; each new pair sweeps in by itself ---------- */
 G.Compare=function(root){
   root.classList.add('cmp');
-  root.innerHTML=`<img class="b" alt=""><div class="a"><img alt=""></div><div class="handle"><i>‹ ›</i></div><span class="la"></span><span class="lb"></span><div class="strips"></div>`;
-  const A=$('.a img',root),B=$('img.b',root),top=$('.a',root),hd=$('.handle',root),la=$('.la',root),lb=$('.lb',root),st=$('.strips',root);
+  root.innerHTML=`<img class="b" alt=""><div class="a"><img alt=""></div><div class="mk"></div><div class="handle"><i>‹ ›</i></div><span class="la"></span><span class="lb"></span><div class="strips"></div>`;
+  const A=$('.a img',root),B=$('img.b',root),top=$('.a',root),hd=$('.handle',root),la=$('.la',root),lb=$('.lb',root),st=$('.strips',root),mk=$('.mk',root);
   let pos=50,stop=null,single=false;
-  const set=p=>{pos=Math.max(0,Math.min(100,p));top.style.clipPath=`inset(0 ${100-pos}% 0 0)`;hd.style.left=pos+'%';
+  const set=p=>{pos=Math.max(0,Math.min(100,p));top.style.clipPath=`inset(0 ${100-pos}% 0 0)`;hd.style.left=pos+'%';mk.style.clipPath=`inset(0 0 0 ${pos}%)`;
     la.style.opacity=pos>18?1:0;lb.style.opacity=pos<82?1:0};
   G.drag(root,(x,y,r)=>{if(single)return;if(stop){stop();stop=null}set((x-r.left)/r.width*100)});
   const ready=(im,src)=>new Promise(res=>{if(im.getAttribute('src')===src&&im.complete){res();return}im.onload=()=>res();im.onerror=()=>res();im.src=src});
   let tk=0;
   return {set,
-    show(before,after,labA,labB,strips){const my=++tk;root.classList.add('busy');
+    // marks (2026-10-16): [{x,y,st:'ok'|'ng'|'tbd',t,p:'u'|'u2'|'d'|'d2'}] on the after picture; end: handle position after the intro slide
+    show(before,after,labA,labB,strips,marks,end){const my=++tk;root.classList.add('busy');
       Promise.all([ready(A,before),ready(B,after||before)]).then(()=>{if(my!==tk)return;root.classList.remove('busy');single=!after;root.classList.toggle('single',single);
         la.textContent=labA?'◀ '+labA:'';lb.textContent=labB?labB+' ▶':'';
         st.innerHTML=(strips||[]).map(s=>`<span>${s}</span>`).join('');
-        if(stop)stop();if(single){set(100);return}set(100);stop=tween(1300,k=>set(100-50*k),ease.io)})},
+        root.classList.toggle('has-mk',!!(marks&&marks.length));   // phones hide the corner labels then (they cover the marks)
+        mk.innerHTML=(marks||[]).map(m=>`<span class="mi ${m.st} ${m.p}${m.x<.12?' l':m.x>.88?' r':''}" style="left:${(m.x*100).toFixed(2)}%;top:${(m.y*100).toFixed(2)}%"><b>${{ok:'✓',ng:'✗',tbd:'？'}[m.st]}</b><em>${m.t}</em></span>`).join('');
+        const e=end==null?50:end;if(stop)stop();if(single){set(100);return}set(100);stop=tween(1300,k=>set(100-(100-e)*k),ease.io)})},
     destroy(){tk++;if(stop)stop()}};
 };
 
@@ -444,52 +447,127 @@ G.PipelineV=function(svg,steps){
 };
 
 /* ---------- PAPI (drawing E-38): four units A-D with elevation settings; above a unit's setting the pilot sees white, below red.
-   Side view after E-38 "3°PAPI仰角示視圖" (angles exaggerated so the fan is readable); drag the aircraft up / down. ---------- */
+   Side view after E-38 "3°PAPI仰角示視圖" (angles exaggerated so the fan is readable). ---------- */
 /* user 2026-10-11: until the visitor first drags, the aircraft sways up and down by itself and a "try it" prompt flashes; both go after
-   the first drag and come back only on a page reload (this flag lives in memory) */
+   the first drag and come back only on a page reload (this flag lives in memory).
+   2026-10-16 r2 (user:「不要只新增一條決斷點的線，請融入並增加互動」): 決斷高度 (DH) is a level line, the 決斷點 where it meets the 3° slope;
+   低雲 puts a cloud base under DH. DH and cloud base are schematic heights.
+   r3 (user:「決斷高度那部分，沒有示意出什麼狀況要重飛」「我要在自己拖移時也能了解，並且我不需要拖移到進場面以內吧，無意義」): the four rules sit
+   under the drawing (看得到跑道→落地；雲中看不到、太高 PAPI 全白、太低 PAPI 全紅→重飛); while dragging, the rule that applies lights up and the
+   pilot panel says why; a click on a rule flies that case (parallel to the 3° slope: on it, above it or below it). The aircraft stays in
+   the approach before the threshold (not on the ground; r5 range below). With the PAPI at OX the A-D fan at one height spans x in a 1 : 1.4
+   ratio from the PAPI, so DH sits at the height (178) where all white / all red fall just inside that range.
+   r4 (user:「決斷點那個互動，可以改成我拖移然後放掉就會沿著虛線進場嗎?」): dragging places the aircraft above DH and draws the dashed path it will
+   fly (parallel to the 3° slope) down to the DH line; on release it flies that path, stops at DH while the rule lights up, then lands along
+   the same line or goes around. The rule buttons fly the same way from a set start.
+   r5 (user:「現在的決斷點可以往下移一點嗎? 太高重飛的範圍太小」): DH 178 -> 110 and the threshold 380 -> 200, so along the DH line the all-white
+   part (threshold to x 305) is about as long as the 2-3 white part (305-395); the aircraft is dragged in x 250-600.
+   r6 (user:「你的飛行軌跡不對，藍色虛線應該跟白色虛線相同」「重飛後飛機應該回右上角不是去左上角」): the path is the white sight line itself, from
+   the aircraft straight at the PAPI, so the angle (and the lights) stay as they were at the release all the way to DH; a go-around pulls
+   up ahead, turns and flies back out to where the approach started (upper right).
+   r7 (user:「飛的速度再加快」「爬升重飛到左上角再回右上角」): about twice as fast; a go-around climbs out to the upper left corner first,
+   then turns and flies back along the top to the start.
+   r8 (user:「不要掉頭」): no turn: the aircraft climbs out of the picture at the upper left, fades, and comes back in at the start.
+   r9 (user:「決斷點拿掉 保留決斷高度」): the 決斷點 marker and its label are gone; the DH line stays.
+   r10 (user:「到決斷高度時那個閃綠光跟紅光保留，同時決斷高度時的停留少一點點」): the green / red flash comes back, where the aircraft meets
+   DH (and the path's end dot takes that colour); the stop at DH 1.4 -> 1.0 s.
+   r12 (user:「低雲有關的刪掉」): the 晴天／低雲 switch, the cloud band, the pilot-view fog and the 雲太低 rule are gone; three rules remain. */
 let papiTried=false;
 G.Papi=function(root,P){
-  root.innerHTML=`<div class="papi"><div class="papi-side"><svg viewBox="0 0 640 330" aria-label="PAPI 仰角示意"></svg><div class="phint ${papiTried?'used':'demo'}"><i></i>${G.touch?'用手指':'用滑鼠'}上下拖曳飛機，試試看</div></div>
-    <aside class="papi-pilot"><small>駕駛員看到的（左起 A～D，A 離跑道最遠）</small><svg viewBox="0 0 300 200"></svg><b class="pst"></b><span class="pen"></span></aside></div>`;
+  const D=P.dh;
+  root.innerHTML=`<div class="papi"><div class="papi-side"><svg viewBox="0 0 640 330" aria-label="PAPI 仰角示意"></svg><div class="phint ${papiTried?'used':'demo'}"><i></i>${G.touch?'用手指':'用滑鼠'}拖曳飛機到起點，放開就沿虛線進場</div></div>
+    <aside class="papi-pilot"><small>駕駛員看到的（左起 A～D，A 離跑道最遠）</small><svg viewBox="0 0 300 200"></svg><b class="pst"></b><span class="pen"></span>
+      <p class="pdh"><span></span><button type="button" class="pga">重飛 ↗</button></p></aside></div>
+    <div class="papi-rules"><div class="ph"><span><b>${D.head}</b><small>${D.sub}</small></span></div>
+      <ul>${D.rules.map(([k,ok,t,r])=>`<li><button type="button" data-r="${k}" class="${ok?'ok':'ng'}"><i>${ok?'✓':'✗'}</i><span>${t}<em>→ ${r}</em></span></button></li>`).join('')}</ul></div>`;
   const sv=$('.papi-side svg',root),pv=$('.papi-pilot svg',root),st=$('.pst',root),en=$('.pen',root),hint=$('.phint',root);
+  const pdh=$('.pdh',root),pdt=$('.pdh span',root),pga=$('.pga',root),rbs=$$('.papi-rules [data-r]',root);
   const F=G.narrow()?1.45:1;   // lettering scale on phones
-  const E=8,OX=80,OY=282,PX=455,rad=d=>d*Math.PI/180,disp=a=>Math.atan(E*Math.tan(rad(a))),real=t=>Math.atan(Math.tan(t)/E)*180/Math.PI;
-  el('rect',{x:10,y:OY,width:410,height:9,fill:'#2a313a'},sv);el('line',{x1:10,y1:OY,x2:630,y2:OY,stroke:'rgba(255,255,255,.35)','stroke-width':2},sv);
-  el('line',{x1:420,y1:OY-8,x2:420,y2:OY+12,stroke:'#fff','stroke-width':2.5},sv);
-  T(sv,OX,OY+32,'PAPI 架設位置',{'text-anchor':'middle',fill:'#93a3b3','font-size':13*F});T(sv,420,OY+32,'跑道頭',{'text-anchor':'middle',fill:'#93a3b3','font-size':13*F});
+  const E=8,OX=80,OY=282,TH=200,XMIN=250,XMAX=600,YMAX=OY-30,rad=d=>d*Math.PI/180,disp=a=>Math.atan(E*Math.tan(rad(a))),real=t=>Math.atan(Math.tan(t)/E)*180/Math.PI;
+  const g3=disp(3),k3=Math.tan(g3),slopeY=x=>OY-(x-OX)*k3,angY=(x,a)=>OY-(x-OX)*Math.tan(disp(a));
+  const YDH=OY-110,XDH=OX+110/k3,PX0=Math.round(XDH);   // schematic DH (XDH: where the 3° slope meets it; the marker was dropped 2026-10-16 r9)
+  const halo={stroke:'#0b1016','stroke-width':4,'paint-order':'stroke','stroke-linejoin':'round'};
+  el('rect',{x:10,y:OY,width:TH-10,height:9,fill:'#2a313a'},sv);el('line',{x1:10,y1:OY,x2:630,y2:OY,stroke:'rgba(255,255,255,.35)','stroke-width':2},sv);
+  el('line',{x1:TH,y1:OY-8,x2:TH,y2:OY+12,stroke:'#fff','stroke-width':2.5},sv);
+  T(sv,OX,OY+32,'PAPI 架設位置',{'text-anchor':'middle',fill:'#93a3b3','font-size':13*F});T(sv,TH,OY+32,'跑道頭',{'text-anchor':'middle',fill:'#93a3b3','font-size':13*F});
   // one line per unit at its setting: the line turns white while the aircraft is above it, red while below
   const rays=P.units.map(([n,a,lab])=>{const t=disp(a),x=OX+540*Math.cos(t),y=OY-540*Math.sin(t);
     const ln=el('line',{x1:OX,y1:OY,x2:x,y2:y,'stroke-width':2,style:'transition:stroke .3s'},sv);
     T(sv,x+2,y-6,`${n}　${lab}`,{'text-anchor':'end',fill:'#dfe6ee','font-size':Math.min(13*F,17)});return ln});
   if(F===1)T(sv,624,24,'每條線以上看到白光、以下看到紅光',{'text-anchor':'end',fill:'#93a3b3','font-size':12});   // phones: the drag hint sits there; the lead says it
-  const g3=disp(3);el('line',{x1:OX,y1:OY,x2:OX+600*Math.cos(g3),y2:OY-600*Math.sin(g3),stroke:'#ffcc00','stroke-width':1.6,'stroke-dasharray':'7 6',opacity:.8},sv);
-  T(sv,OX+250*Math.cos(g3),OY-250*Math.sin(g3)+18,'3° 進場斜面',{fill:'#ffcc00','font-size':12.5*F,transform:`rotate(${-g3*180/Math.PI} ${OX+250*Math.cos(g3)} ${OY-250*Math.sin(g3)+18})`});
+  el('line',{x1:OX,y1:OY,x2:OX+600*Math.cos(g3),y2:OY-600*Math.sin(g3),stroke:'#ffcc00','stroke-width':1.6,'stroke-dasharray':'7 6',opacity:.8},sv);
+  T(sv,OX+200*Math.cos(g3),OY-200*Math.sin(g3)+18,'3° 進場斜面',{fill:'#ffcc00','font-size':12.5*F,transform:`rotate(${-g3*180/Math.PI} ${OX+200*Math.cos(g3)} ${OY-200*Math.sin(g3)+18})`});
+  // decision height: a level line from the threshold out (its height marked over the threshold); the 決斷點 turns green / red when reached
+  el('line',{x1:TH,y1:YDH,x2:632,y2:YDH,stroke:'#ffcc00','stroke-width':1.5,'stroke-dasharray':'2 5'},sv);
+  el('line',{x1:TH,y1:YDH,x2:TH,y2:OY-10,stroke:'#ffcc00','stroke-width':1,'stroke-dasharray':'2 4',opacity:.6},sv);
+  T(sv,TH-6,YDH+5,D.line,Object.assign({'text-anchor':'end',fill:'#ffcc00','font-size':12.5*F,'font-weight':700},halo));
   el('rect',{x:OX-13,y:OY-12,width:26,height:10,rx:2,fill:'#dfe6ee'},sv);el('rect',{x:OX-9,y:OY-2,width:3,height:6,fill:'#93a3b3'},sv);el('rect',{x:OX+6,y:OY-2,width:3,height:6,fill:'#93a3b3'},sv);
-  const sight=el('line',{x1:OX,y1:OY-8,x2:PX,y2:OY,stroke:'#fff','stroke-width':1.4,'stroke-dasharray':'3 5',opacity:.7},sv);
-  const plane=el('g',{style:'cursor:ns-resize'},sv);
+  const sight=el('line',{x1:OX,y1:OY,x2:PX0,y2:OY,stroke:'#fff','stroke-width':1.4,'stroke-dasharray':'3 5',opacity:.7},sv);
+  const path=el('line',{stroke:'#4fd2ff','stroke-width':2.6,'stroke-dasharray':'8 6','stroke-linecap':'round',opacity:0,'pointer-events':'none'},sv);   // the approach the aircraft will fly (cyan: apart from the white / red PAPI lines)
+  const pend=el('circle',{r:5,fill:'#4fd2ff',stroke:'#0b1016','stroke-width':1.5,opacity:0,'pointer-events':'none'},sv);   // where it meets the DH line
+  const flash=[0,1].map(()=>el('circle',{r:9,fill:'none','stroke-width':3,opacity:0,'pointer-events':'none'},sv));   // green / red flash at DH
+  const plane=el('g',{style:'cursor:move;transition:opacity .3s'},sv);
   el('path',{d:'M-42,0 Q-38,-7 -27,-8 L22,-8 L36,-26 L45,-26 L40,-7 Q46,-1 42,4 L-27,7 Q-39,6 -42,0 Z',fill:'#eef3f8',stroke:'#6f7f8e','stroke-width':1.2},plane);
   el('path',{d:'M-8,2 L8,14 L19,14 L7,2 Z',fill:'#c9d2da'},plane);el('circle',{cx:-33,cy:-3,r:2.4,fill:'#1b2129'},plane);
-  const arr=papiTried?null:el('path',{class:'p-arr',d:'M-8,-36 L0,-45 L8,-36 M-8,24 L0,33 L8,24',fill:'none',stroke:'#ffcc00','stroke-width':3.5,'stroke-linecap':'round','stroke-linejoin':'round'},plane);   // drag me: up / down
+  const arr=papiTried?null:el('path',{class:'p-arr',d:'M-8,-36 L0,-45 L8,-36 M-8,24 L0,33 L8,24 M-52,-7 L-60,0 L-52,7 M56,-7 L64,0 L56,7',fill:'none',stroke:'#ffcc00','stroke-width':3.5,'stroke-linecap':'round','stroke-linejoin':'round'},plane);   // drag me: four ways
 
-  // pilot view: the runway looks taller or flatter (E-38 跑道狀態), four lights; outer units turn white first
+  // pilot view: the runway looks taller or flatter (E-38 跑道狀態) and bigger when nearer; four lights; outer units turn white first
   const rw=el('path',{fill:'#2a313a',stroke:'rgba(255,255,255,.55)','stroke-width':1.5},pv),cl=el('line',{stroke:'#fff','stroke-width':2,'stroke-dasharray':'6 6',opacity:.7},pv);
   const lamps=[0,1,2,3].map(i=>{const g=el('g',{transform:`translate(${66+i*56},166)`},pv);el('rect',{x:-22,y:-14,width:44,height:28,rx:5,fill:'#11171e',stroke:'rgba(255,255,255,.18)'},g);
     T(g,0,30,P.units[i][0],{'text-anchor':'middle',fill:'#93a3b3','font-size':13});return el('circle',{r:9,fill:'#fff'},g)});
-  let cur=3,stop=null,idle=null;const COLS=['#ffffff','#ff4d4d'];
-  function set(a){cur=Math.max(1.3,Math.min(4.6,a));const t=disp(cur),y=OY-(PX-OX)*Math.tan(t);
-    plane.setAttribute('transform',`translate(${PX},${y}) rotate(-7)`);sight.setAttribute('x2',PX-36);sight.setAttribute('y2',y+2);
-    const whites=P.units.filter(u=>cur>u[1]).length;rays.forEach((ln,i)=>{const w=cur>P.units[i][1];ln.setAttribute('stroke',w?'rgba(255,255,255,.85)':'rgba(255,90,80,.85)')});
-    lamps.forEach((c,i)=>{const w=i<whites;c.setAttribute('fill',w?COLS[0]:COLS[1]);c.style.filter=`drop-shadow(0 0 8px ${w?'#fff':'#ff4d4d'})`});
-    const h=26+(cur-1.3)*22,top=118-h;rw.setAttribute('d',`M80,118 L220,118 L${150+14},${top} L${150-14},${top} Z`);cl.setAttribute('x1',150);cl.setAttribute('y1',116);cl.setAttribute('x2',150);cl.setAttribute('y2',top+4);
-    const s=P.states[4-whites];st.textContent=s[1];en.textContent=`${s[0]}　仰角約 ${cur.toFixed(1)}°`;st.dataset.k=4-whites}
-  const still=()=>{if(idle){clearInterval(idle);idle=null}};
-  G.drag(sv,(x,y,r)=>{if(stop){stop();stop=null}still();
-    if(!papiTried){papiTried=true;hint.classList.remove('demo');hint.classList.add('used');if(arr)arr.remove()}
-    const py=(y-r.top)/r.height*330;set(real(Math.atan(Math.max(1,OY-py)/(PX-OX))))});
-  set(4.3);
-  // idle sway 4.3° -> 1.8° -> 4.3°, 8 s a round: all five states (too high ... too low) pass by
-  const sway=()=>{if(idle)return;const t0=Date.now();idle=setInterval(()=>{if(!document.hidden)set(3.05+1.25*Math.cos((Date.now()-t0)/8000*2*Math.PI))},40)};
-  return {play(){if(!papiTried)sway();else stop=tween(4200,k=>set(4.3-1.3*k),ease.io)},destroy(){if(stop)stop();still()}};
+  let px=PX0,py=OY,cur=3,wh=2,mode='',anim=null,idle=null,tok=0,lastR='',auto=false,face=1;const COLS=['#ffffff','#ff4d4d'];   // face -1: flying back out (mirrored)
+  const RULE={go:'go',land:'go',high:'high',low:'low'},NG=['high','low'];
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function place(x,y,rot,free){px=free?x:clamp(x,XMIN,XMAX);py=free?clamp(y,14,OY-8):clamp(y,16,YMAX);
+    plane.setAttribute('transform',`translate(${px},${py}) scale(${face},1) rotate(${rot==null?-7:rot})`);sight.setAttribute('x2',px);sight.setAttribute('y2',py);   // the sight line ends at the aircraft
+    if(px>OX+40&&mode!=='goa'){cur=real(Math.atan(Math.max(.5,OY-py)/(px-OX)));   // landing roll and go-around: the lights stay as they were
+      wh=P.units.filter(u=>cur>u[1]).length;rays.forEach((ln,i)=>ln.setAttribute('stroke',cur>P.units[i][1]?'rgba(255,255,255,.85)':'rgba(255,90,80,.85)'));
+      lamps.forEach((c,i)=>{const w=i<wh;c.setAttribute('fill',w?COLS[0]:COLS[1]);c.style.filter=`drop-shadow(0 0 8px ${w?'#fff':'#ff4d4d'})`});
+      const sc=clamp(.8+.55*(XMAX-px)/(XMAX-XMIN),.8,1.35),a=clamp(cur,1.3,4.6);
+      const h=Math.min(108,(26+(a-1.3)*22)*sc),top=118-h,hw=70*sc,tw=14*sc;
+      rw.setAttribute('d',`M${150-hw},118 L${150+hw},118 L${150+tw},${top} L${150-tw},${top} Z`);cl.setAttribute('x1',150);cl.setAttribute('y1',116);cl.setAttribute('x2',150);cl.setAttribute('y2',top+4);
+      const s=P.states[4-wh];st.textContent=s[1];en.textContent=`${s[0]}　仰角約 ${cur.toFixed(2)}°`;st.dataset.k=4-wh}
+    const at=py>=YDH-1;   // reached the decision height: the rules apply
+    const k=mode||(!at?'above':wh>=4?'high':wh<=0?'low':'go');
+    if(pdh.dataset.k!==k){pdh.dataset.k=k;pdt.textContent=D.st[k];pga.style.display=NG.includes(k)&&!mode&&!auto?'':'none';
+      if(RULE[k]&&k!=='land'){const c=RULE[k]==='go'?'#3ecf8e':'#ff4d4d';pend.setAttribute('fill',c);   // reached DH: flash where the aircraft is
+        flash.forEach((f,i)=>{f.setAttribute('cx',px);f.setAttribute('cy',py);f.setAttribute('stroke',c);
+          setTimeout(()=>tween(800,t=>{f.setAttribute('r',10+30*t);f.setAttribute('opacity',1-t)},ease.out),i*220)})}}
+    const r=k==='goa'?lastR:(RULE[k]||'');lastR=r;rbs.forEach(b=>b.classList.toggle('hit',b.dataset.r===r));
+  }
+  const tried=()=>{if(papiTried)return;papiTried=true;hint.classList.remove('demo');hint.classList.add('used');if(arr)arr.remove()};
+  const xdOf=(x,y)=>OX+(x-OX)*(OY-YDH)/(OY-y);   // where the sight line (aircraft -> PAPI) meets the DH line
+  function showPath(x,y){const xd=xdOf(x,y);path.setAttribute('x1',x);path.setAttribute('y1',y);path.setAttribute('x2',xd);path.setAttribute('y2',YDH);
+    pend.setAttribute('cx',xd);pend.setAttribute('cy',YDH);pend.setAttribute('fill','#4fd2ff');path.setAttribute('opacity',.85);pend.setAttribute('opacity',1);return xd}
+  const hidePath=()=>{path.setAttribute('opacity',0);pend.setAttribute('opacity',0)};
+  function halt(){tok++;plane.style.opacity=1;if(anim){anim();anim=null}if(idle){clearInterval(idle);idle=null}rbs.forEach(b=>b.classList.remove('run'));auto=false;if(mode){mode='';place(px,py)}}
+  const fly=(ms,x0,y0,x1,y1,r0,r1,ez,free)=>new Promise(res=>{anim=tween(ms,k=>place(x0+(x1-x0)*k,y0+(y1-y0)*k,r0+(r1-r0)*k,free),ez||ease.lin,()=>{anim=null;res()})});
+  const wait=ms=>new Promise(res=>setTimeout(res,ms));
+  const done=at=>{mode='';auto=false;face=1;hidePath();rbs.forEach(b=>b.classList.remove('run'));place(at?at[0]:PX0,at?at[1]:angY(PX0,3.6))};
+  // go-around: climb out ahead to the upper left corner and out of the picture, then come back in at the start of the approach (upper right)
+  async function goAround(my,back){mode='goa';place(px,py);const x0=px,y0=py,b=back||[560,angY(560,3.4)];
+    await fly(1200,x0,y0,30,18,-7,16,ease.io,true);if(my!==tok)return;
+    plane.style.opacity=0;await wait(350);if(my!==tok)return;done(b);plane.style.opacity=1}
+  // fly the dashed path (the sight line) from (x0, y0) to the DH line; there the rule that applies lights up; 'go' carries on down it to the runway
+  async function approach(x0,y0,my){auto=true;const xd=showPath(x0,y0);place(x0,y0,-7,true);
+    await fly(Math.max(450,(x0-xd)*3),x0,y0,xd,YDH,-7,-7,ease.lin,true);if(my!==tok)return;   // same pace as the descent after DH (user:「前段的也加速」)
+    await wait(1000);if(my!==tok)return;                                                  // at DH: the rule lights up, the panel says why
+    if(pdh.dataset.k!=='go'){await goAround(my,[x0,y0]);return}
+    const xt=xd+(OX-xd)*(OY-8-YDH)/(OY-YDH);path.setAttribute('x2',xt);path.setAttribute('y2',OY-8);pend.setAttribute('opacity',0);
+    await fly((xd-xt)*3,xd,YDH,xt,OY-8,-7,-2,ease.lin,true);if(my!==tok)return;             // down to the runway
+    mode='land';await fly(900,xt,OY-8,Math.max(34,xt-60),OY-8,-2,0,ease.out,true);if(my!==tok)return;   // roll
+    await wait(1000);if(my!==tok)return;done([x0,y0])}
+  // a rule's case: a start at a set angle (3° on the slope, 3.9° all white, 2.2° all red)
+  const SA={go:[560,3],high:[470,3.9],low:[600,2.2]};
+  function demo(r,b){halt();tried();const my=tok;b.classList.add('run');approach(SA[r][0],angY(...SA[r]),my)}
+  rbs.forEach(b=>b.onclick=()=>demo(b.dataset.r,b));
+  pga.onclick=()=>{halt();tried();auto=true;goAround(tok)};
+  // drag: the start (in the approach, above DH) and its dashed path; release: fly it
+  G.drag(sv,(x,y,r)=>{halt();tried();place((x-r.left)/r.width*640,Math.min((y-r.top)/r.height*330,YDH-12));showPath(px,py)},()=>approach(px,py,tok));
+  place(PX0,angY(PX0,4));
+  // idle sway 4.0° -> 1.8° -> 4.0° at the 決斷點 distance, 8 s a round: all five states pass by, and the aircraft crosses the DH line
+  const sway=()=>{if(idle)return;const t0=Date.now();idle=setInterval(()=>{if(!document.hidden)place(PX0,angY(PX0,2.9+1.1*Math.cos((Date.now()-t0)/8000*2*Math.PI)))},40)};
+  return {play(){if(!papiTried)sway();else{halt();const my=tok;anim=tween(4200,k=>{if(my===tok)place(PX0,angY(PX0,4-.4*k))},ease.io,()=>{anim=null})}},destroy(){halt()}};
 };
 
 /* ---------- end lights as a model video (user 2026-10-13, replaces the 2026-10-11 still with the green row framed): approach over the
@@ -502,7 +580,7 @@ G.EndVideo=function(root,m){
 };
 
 /* ---------- PAPI in the night frame (both circuits on): the row of four circled, with a 4x magnified inset ---------- */
-G.PapiPhoto=function(root,src,units,cap){
+G.PapiPhoto=function(root,src,units,cap,edge){   // edge (2026-10-16): {x,t} a dimension from unit D to the shoulder edge line, inside the 4x inset
   const xs=units.map(u=>u[0]),y=units[0][1],cx=(Math.min(...xs)+Math.max(...xs))/2,Z=4;
   const bx0=(Math.min(...xs)-.018)*1920,bx1=(Math.max(...xs)+.018)*1920,by0=(y-.022)*1080,by1=(y+.022)*1080;
   root.innerHTML=`<div class="pphoto"><img src="${src}" alt="${cap}"><svg viewBox="0 0 1920 1080" preserveAspectRatio="none">
@@ -510,8 +588,9 @@ G.PapiPhoto=function(root,src,units,cap){
       <line x1="${(bx0+bx1)/2}" y1="${by0}" x2="${(bx0+bx1)/2}" y2="${by0-120}" stroke="#ffcc00" stroke-width="4"/>
       <rect x="${(bx0+bx1)/2-150}" y="${by0-196}" width="300" height="76" rx="14" fill="rgba(12,17,22,.92)" stroke="#ffcc00" stroke-width="3"/>
       <text x="${(bx0+bx1)/2}" y="${by0-146}" text-anchor="middle" fill="#fff" font-size="40" font-weight="700" font-family="Microsoft JhengHei">PAPI　一排 4 盞</text></svg>
-    <div class="pp-zoom" style="background-image:url(${src});background-size:${Z*100}% ${Z*100}%;background-position:${((cx-.5/Z)*Z/(Z-1)*100).toFixed(2)}% ${((y-.5/Z)*Z/(Z-1)*100).toFixed(2)}%"><span>放大 4 倍</span></div>
+    <div class="pp-zoom" style="background-image:url(${src});background-size:${Z*100}% ${Z*100}%;background-position:${((cx-.5/Z)*Z/(Z-1)*100).toFixed(2)}% ${((y-.5/Z)*Z/(Z-1)*100).toFixed(2)}%"><span>放大 4 倍</span>${edge?`<i class="pp-dim" style="left:${((Math.max(...xs)-(cx-.5/Z))*Z*100).toFixed(2)}%;width:${((edge.x-Math.max(...xs))*Z*100).toFixed(2)}%;top:${((y-(y-.5/Z))*Z*100+7).toFixed(2)}%"><b>${edge.t}</b></i>`:''}</div>
     <span class="pp-cap">${cap}</span></div>`;
   root.querySelector('.pphoto').onclick=()=>G.lightbox(src,cap);
 };
+
 })();

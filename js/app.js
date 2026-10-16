@@ -6,7 +6,7 @@ const {h,$,$$}=G;const S=window.SITE;
 const view=$('#view');
 /* ---------- the tour line ---------- */
 const route=$('#route');
-route.innerHTML='<div class="line"><i></i></div>'+S.stops.map((s,i)=>`<a href="${s.route}" class="st" style="--c:${s.zone?G.COL[s.zone]:'#ffcc00'}" data-i="${i}"><span class="d"></span><span class="t">${s.zone?S.zones[s.zone].name:s.label}</span></a>`).join('')+
+route.innerHTML='<div class="line"><i></i></div>'+S.stops.map((s,i)=>`<a href="${s.route}" class="st" style="--c:${s.zone?G.COL[s.zone]:'#ffcc00'}" data-i="${i}"><span class="d"></span><span class="t">${s.name||(s.zone?S.zones[s.zone].name:s.label)}</span></a>`).join('')+
   '<span class="train"></span><div class="tip"><small></small><b></b><span></span></div>';
 const stops=$$('.st',route),fill=$('.line i',route),line=$('.line',route),train=$('.train',route),tip=$('.tip',route);
 const menuBtn=$('#menuBtn');
@@ -19,9 +19,9 @@ function place(){const r=route.getBoundingClientRect();if(!r.width||getComputedS
 function setStop(i){const moved=i!==curI;curI=i;visited.add(S.stops[i].route);G.store.set('visited',JSON.stringify([...visited]));if(i)G.store.set('last',S.stops[i].route);
   stops.forEach((s,k)=>{s.classList.toggle('on',k===i);s.classList.toggle('v',visited.has(S.stops[k].route))});
   if(moved){train.classList.remove('go');void train.offsetWidth;train.classList.add('go')}place();
-  const st=S.stops[i];menuBtn.querySelector('b').textContent=i?G.pad(i):'起點';menuBtn.querySelector('span').textContent=st.zone?S.zones[st.zone].name:st.label}
-stops.forEach((a,i)=>{a.addEventListener('mouseenter',()=>{const st=S.stops[i];$('small',tip).textContent=G.stopNo(i);$('b',tip).textContent=st.zone?S.zones[st.zone].name:st.label;
-    $('span',tip).textContent=st.zone?S.zones[st.zone].cap:st.sub;tip.style.setProperty('--c',st.zone?G.COL[st.zone]:'#ffcc00');
+  const st=S.stops[i];menuBtn.querySelector('b').textContent=i?G.pad(i):'起點';menuBtn.querySelector('span').textContent=st.name||(st.zone?S.zones[st.zone].name:st.label)}
+stops.forEach((a,i)=>{a.addEventListener('mouseenter',()=>{const st=S.stops[i];$('small',tip).textContent=G.stopNo(i);$('b',tip).textContent=st.name||(st.zone?S.zones[st.zone].name:st.label);
+    $('span',tip).textContent=st.cap||(st.zone?S.zones[st.zone].cap:st.sub);tip.style.setProperty('--c',st.zone?G.COL[st.zone]:'#ffcc00');
     const r=route.getBoundingClientRect(),d=a.getBoundingClientRect();tip.style.left=Math.min(r.width-150,Math.max(150,d.left-r.left+d.width/2))+'px';tip.classList.add('on')});
   a.addEventListener('mouseleave',()=>tip.classList.remove('on'))});
 menuBtn.onclick=()=>{route.classList.toggle('open');menuBtn.classList.toggle('x')};
@@ -35,7 +35,7 @@ window.addEventListener('resize',place);
 /* ---------- router ---------- */
 function parse(hash){hash=hash||'#/';let m;
   if(hash==='#/'||hash==='#'||hash==='')return {page:'home',route:'#/'};
-  if((m=/^#\/zone\/([1-4])$/.exec(hash)))return {page:'zone',param:m[1],route:hash};
+  if((m=/^#\/zone\/([1-4])$/.exec(hash)))return m[1]==='2'?{page:'zone',param:'2',route:'#/zone/1',focus:2}:{page:'zone',param:m[1],route:hash};   // zone 2: the merged page, scrolled to it
   m=/^#\/(phase|control|aids|insp|film|making)$/.exec(hash);if(m)return {page:m[1],route:hash};
   if(hash==='#/about')return {page:'making',route:'#/making'};
   return {page:'home',route:'#/'}}
@@ -50,6 +50,7 @@ async function go(){
     if(my!==token)return;
     if(cur.destroy)cur.destroy();cur.el.remove()}
   const p=G.pages[r.page](r.param,ctx);view.appendChild(p.el);window.scrollTo(0,0);cur=p;cur.route=r.route;setStop(ti);
+  if(r.focus)setTimeout(()=>{const t=p.el.querySelector('#zp-'+r.focus);if(t)window.scrollTo(0,t.getBoundingClientRect().top+scrollY-84)},450);
   document.title=(r.page==='home'?'':G.titleOf(r.route).split('　')[0]+'｜')+'花蓮機場施工導覽';
   if(wipe)G.Wipe.reveal(dir);                                         // panel sweeps out the same way
   if(p.enter)p.enter();G.reveal(p.el);

@@ -182,23 +182,25 @@ G.Hub=function(svg,opt){
 
 /* ================= zone strip (zone page header) ================= */
 G.ZoneStrip=function(svg,zi){
+  const zs=[].concat(zi);   // 2026-10-16: one zone, or several (the merged zone 1 + 2 page)
   // about 1.3 drawing units per screen pixel on phones (the page is not in the document yet, so the window width is used)
   const W=innerWidth<820?Math.max(440,Math.round((innerWidth-32)*1.3)):1320,H=96,X0=24,X1=W-24,RY=52,HI=11,SD=7,TOP=RY-HI-SD,BOT=RY+HI+SD;const sx=s=>X0+(X1-X0)*s/L;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
   const O={sx,TOP,BOT,RY,HI,SD};
   el('path',{d:G.runwayOutline(X0,X1,O).d,fill:'#18202a'},svg);
-  for(let i=1;i<=4;i++){const z=SITE.zones[i];G.zoneRects(z,O).forEach(r=>el('rect',{x:r.x,y:r.y,width:r.w,height:r.h,fill:COL[i],opacity:i===zi?0:.16},svg))}
-  const z=SITE.zones[zi],zx=sx(z.span[0]),zw=sx(z.span[1])-zx;
-  const parts=G.zoneRects(z,O).map(r=>({r,e:el('rect',{x:r.x,y:r.y,width:0,height:r.h,fill:COL[zi]},svg)}));   // filled from the 03 side, mouths as the fill passes them
+  for(let i=1;i<=4;i++){const z=SITE.zones[i];G.zoneRects(z,O).forEach(r=>el('rect',{x:r.x,y:r.y,width:r.w,height:r.h,fill:COL[i],opacity:zs.includes(i)?0:.16},svg))}
+  const parts=[];zs.forEach(q=>{const z=SITE.zones[q],zx=sx(z.span[0]),zw=sx(z.span[1])-zx;   // filled from the 03 side, mouths as the fill passes them
+    G.zoneRects(z,O).forEach(r=>parts.push({r,zx,zw,e:el('rect',{x:r.x,y:r.y,width:0,height:r.h,fill:COL[q]},svg)}))});
   const OL=G.runwayOutline(X0,X1,O),len=OL.len;const ol=el('path',{d:OL.d,fill:'none',stroke:'#ffcc00','stroke-width':1.6,'stroke-dasharray':len,'stroke-dashoffset':len},svg);
   T(svg,X0-4,RY+5,'03',{'text-anchor':'end',fill:'#93a3b3','font-size':13});T(svg,X1+4,RY+5,'21',{fill:'#93a3b3','font-size':13});
-  const a=sx(z.span[0]),b=sx(z.span[1]);const br=el('g',{opacity:0},svg);
-  el('path',{d:`M${a},${TOP-6} L${a},${TOP-14} L${b},${TOP-14} L${b},${TOP-6}`,fill:'none',stroke:COL[zi],'stroke-width':2},br);
-  T(br,a,TOP-20,'STA '+G.fmtSTAx(z.span[0]),{fill:'#dfe6ee','font-size':13,'text-anchor':a<X0+80?'start':'middle'});
-  T(br,b,TOP-20,'STA '+G.fmtSTAx(z.span[1]),{fill:'#dfe6ee','font-size':13,'text-anchor':b>X1-80?'end':'middle'});
-  if(z.mouths)T(br,(a+b)/2,BOT+20,'凸出處＝2、3、4 號聯絡道口（跑道邊線外 30 m）',{fill:COL[zi],'font-size':13,'text-anchor':'middle'});
+  const br=el('g',{opacity:0},svg);
+  zs.forEach(q=>{const z=SITE.zones[q],a=sx(z.span[0]),b=sx(z.span[1]);
+    el('path',{d:`M${a},${TOP-6} L${a},${TOP-14} L${b},${TOP-14} L${b},${TOP-6}`,fill:'none',stroke:COL[q],'stroke-width':2},br);
+    T(br,a,TOP-20,'STA '+G.fmtSTAx(z.span[0]),{fill:'#dfe6ee','font-size':13,'text-anchor':a<X0+80?'start':'middle'});
+    T(br,b,TOP-20,'STA '+G.fmtSTAx(z.span[1]),{fill:'#dfe6ee','font-size':13,'text-anchor':b>X1-80?'end':'middle'});
+    if(z.mouths)T(br,(a+b)/2,BOT+20,'凸出處＝2、3、4 號聯絡道口（跑道邊線外 30 m）',{fill:COL[q],'font-size':13,'text-anchor':'middle'})});
   return {play(){tween(900,k=>ol.setAttribute('stroke-dashoffset',len*(1-k)),ease.io);
-    setTimeout(()=>tween(800,k=>parts.forEach(p=>p.e.setAttribute('width',Math.max(0,Math.min(p.r.w,zw*k-(p.r.x-zx))))),ease.out),400);
+    setTimeout(()=>tween(800,k=>parts.forEach(p=>p.e.setAttribute('width',Math.max(0,Math.min(p.r.w,p.zw*k-(p.r.x-p.zx))))),ease.out),400);
     setTimeout(()=>tween(500,k=>br.setAttribute('opacity',k)),900)}};
 };
 })();
@@ -239,6 +241,8 @@ G.PhaseMap=function(svg){
       tween(500,t=>gg.setAttribute('transform',`scale(${ease.back(t)})`))},500+k*220));
     if(s.chev){const n=5,dir=s.thr03>0?1:-1;for(let k=0;k<n;k++)setTimeout(()=>{if(cur!==i)return;const x=sx(s.chev[0])+(sx(s.chev[1])-sx(s.chev[0]))*(k+.5)/n;
       const p=el('path',{d:`M${x-8*dir},${RY-14} L${x+6*dir},${RY} L${x-8*dir},${RY+14}`,fill:'none',stroke:'#fff','stroke-width':3,opacity:0},layer);tween(300,t=>p.setAttribute('opacity',t))},700+k*120)}
+    (s.chk||[]).forEach(([st,k],n)=>setTimeout(()=>{if(cur!==i)return;   // 2026-10-16 規範檢核 dots (colours as on the photo)
+      const c=el('circle',{cx:sx(st),cy:RY+H-9,r:5.5,fill:{ok:'#3ecf8e',ng:'#ff4d4d',tbd:'#ffcc00'}[k],stroke:'#0b1016','stroke-width':1.5,opacity:0},layer);tween(300,t=>c.setAttribute('opacity',t))},900+n*90));
     (s.red||[]).forEach(([a,b])=>{const g=el('g',{},layer);for(let x=sx(a)+6;x<sx(b)-6;x+=16){el('rect',{x,y:RY-22,width:9,height:5,fill:'#ff3b30'},g);el('rect',{x,y:RY+17,width:9,height:5,fill:'#ff3b30'},g)}
       let n=0;const blink=()=>{if(cur!==i||n>8)return g.setAttribute('opacity',1);g.setAttribute('opacity',n%2?.35:1);n++;setTimeout(blink,260)};blink();
       if(!NW)T(layer,(sx(a)+sx(b))/2,RY-H-8,'紅色＝黑漆覆蓋或抹除',{'text-anchor':'middle',fill:'#ff8a7a','font-size':12});
