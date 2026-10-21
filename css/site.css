@@ -529,6 +529,18 @@ body.present .wrap{max-width:1600px}
   .hub .zcard{display:none}
   .chapters li{grid-template-columns:88px 1fr}}
 /* frame player: loading progress (thin bar at the bottom, fades out when every frame is in) */
+.lg-host{position:relative}
+.lgate{position:absolute;inset:0;z-index:40;display:block;border-radius:16px;background:rgba(7,11,16,0);pointer-events:auto;cursor:progress;transition:background .3s,opacity .4s}
+.lgate .lg-card{position:absolute;left:50%;top:40%;translate:-50% 0;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:16px 24px 14px;min-width:260px;max-width:86%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+.lgate.on{background:rgba(7,11,16,.74)}.lgate.on .lg-card{opacity:1;transform:none}
+.lgate.done{opacity:0;pointer-events:none}
+.lgate .lg-card b{display:block;color:var(--text);font-size:16px;letter-spacing:.12em;margin-top:8px}
+.lgate .lg-bar{height:6px;margin:12px 0 7px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.lgate .lg-bar i{display:block;height:100%;width:0;background:var(--yel);box-shadow:0 0 8px var(--yel);transition:width .25s}
+.lgate .lg-n{display:block;color:var(--yel);font-size:14px;font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.lgate small{display:block;margin-top:6px;color:var(--muted);font-size:12.5px;letter-spacing:.06em}
+.lgate .lg-spin{display:inline-block;width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,204,0,.25);border-top-color:var(--yel);animation:lgspin .9s linear infinite}
+@keyframes lgspin{to{transform:rotate(360deg)}}
 .fp-load{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08);transition:opacity .6s;z-index:2;pointer-events:none}
 .fp-load i{display:block;height:100%;width:0;background:var(--yel);box-shadow:0 0 8px var(--yel);transition:width .3s}
 .fp-load.done{opacity:0}

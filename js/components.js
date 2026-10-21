@@ -34,6 +34,29 @@ G.FramePlayer=function(root,frames,fps,badge,hold){
   return {destroy(){alive=false;clearTimeout(timer);if(io)io.disconnect()}};
 };
 
+/* ---------- loading gate (user 2026-10-21:「我希望載入還未完成之前就顯示他還在載入，不要看似可以操作 實則還在載入畫面很卡」): a viewer
+   that runs through many pictures is covered until they are all loaded - progress and count shown, clicks, drags and arrow keys held.
+   Shown after 250 ms only (pictures already in the cache: no flash). G.LoadGate(host,urls|null,{title,note}); start(urls) when the
+   list comes later; then(fn) runs fn once loaded; cancel() on destroy. Failed pictures count as done (the gate always opens). ---------- */
+G.LoadGate=function(host,urls,o={}){
+  host.classList.add('lg-host');
+  const el=h('div','lgate',`<div class="lg-card"><i class="lg-spin"></i><b>${o.title||'畫面載入中'}</b><div class="lg-bar"><i></i></div><span class="lg-n">準備中</span><small>${o.note||'載入完成前暫時無法操作'}</small></div>`,host);
+  const bar=$('.lg-bar i',el),num=$('.lg-n',el),card=$('.lg-card',el),C=o.conc||8;let n=0,ok=0,next=0,busy=0,fin=false,alive=true,list=[],cbs=[];
+  // the card sits in the middle of the part of the block that is on screen (a tall block on a phone: its middle may be off screen)
+  const pos=()=>{const r=host.getBoundingClientRect(),t=Math.max(r.top,64),b=Math.min(r.bottom,innerHeight),ch=card.offsetHeight;
+    card.style.top=Math.max(8,Math.min(r.height-ch-8,(t+b)/2-r.top-ch/2))+'px'};
+  addEventListener('scroll',pos,{passive:true});addEventListener('resize',pos);requestAnimationFrame(pos);
+  const unpos=()=>{removeEventListener('scroll',pos);removeEventListener('resize',pos)};
+  const show=setTimeout(()=>{if(!fin)el.classList.add('on')},o.delay==null?250:o.delay);
+  const upd=()=>{const p=n?ok/n:1;bar.style.width=(p*100)+'%';num.textContent=`${Math.floor(p*100)}%　${ok.toLocaleString()}／${n.toLocaleString()} 張`};
+  const finish=()=>{if(fin)return;fin=true;clearTimeout(show);unpos();el.classList.add('done');setTimeout(()=>{el.remove();host.classList.remove('lg-host')},450);const f=cbs;cbs=[];f.forEach(g=>g())};
+  const pump=()=>{while(alive&&busy<C&&next<n){const im=new Image();im.decoding='async';busy++;
+    im.onload=im.onerror=()=>{busy--;ok++;upd();if(ok>=n)finish();else pump()};im.src=list[next++]}};
+  const start=u=>{list=[...new Set(u||[])];n=list.length;if(!n){finish();return}upd();pump()};
+  if(urls)start(urls);
+  return {start,get done(){return fin},then(f){if(fin)f();else cbs.push(f)},cancel(){alive=false;clearTimeout(show);unpos()}};
+};
+
 /* ---------- B (2026-10-10): zone hero as a small MP4 (about 2.5 MB instead of about 9 MB of frames). Same look and behaviour as
    FramePlayer: plays while on screen, holds the last picture (exploded layers) before looping, click to pause.
    If the video cannot play, it hands over to FramePlayer with the frames. ---------- */
@@ -179,7 +202,7 @@ G.StateViewer=function(root,cfg){
   S.forEach(s=>{if(s.f!=null){s.k=idxOf(s.f);s.ke=s.enter!=null?idxOf(s.enter):s.k}});
   const live=cfg.live?cfg.live($('.live svg',root)):null;
   const rail=G.Rail($('.rail-host',root),S.map(s=>({label:s.short,thumb:s.thumb})),i=>{used();go(i)});
-  G.onView(root,()=>[...srcs,...S.filter(s=>s.src).map(s=>s.src)].forEach(s=>{const im=new Image();im.src=s}),0);
+  let gate=null;G.onView(root,()=>{gate=G.LoadGate($('.sv',root),[...srcs,...S.filter(s=>s.src).map(s=>s.src)],{title:'步驟畫面載入中'})},0);   // 2026-10-21: covered until all frames are in
   let front=imgs[0],back=imgs[1],cur=-1,frame=-1,token=0;
   function cross(src,done){const my=token;back.onload=null;
     // 2026-10-11: drop the load handler once it has fired; otherwise the morph that follows changes this (now front) picture's
@@ -239,11 +262,11 @@ G.StateViewer=function(root,cfg){
   stage.addEventListener('click',()=>{used();go(cur===N-1?0:cur+1)});
   G.swipe(stage,d=>{used();go(cur+d)});
   // ← → step through the states while the viewer is on screen; at either end the key falls through to the page (previous / next stop)
-  const onKey=e=>{if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||!G.onScreen(stage))return;
+  const onKey=e=>{if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||!G.onScreen(stage)||(gate&&!gate.done))return;
     if(e.key==='ArrowRight'&&cur<N-1){used();go(cur+1);e.preventDefault()}else if(e.key==='ArrowLeft'&&cur>0){used();go(cur-1);e.preventDefault()}};
   document.addEventListener('keydown',onKey);
   go(0);
-  return {go,destroy(){token++;document.removeEventListener('keydown',onKey);rail.destroy()}};
+  return {go,destroy(){token++;if(gate)gate.cancel();document.removeEventListener('keydown',onKey);rail.destroy()}};
 };
 
 /* ---------- before / after: drag the handle; each new pair sweeps in by itself ---------- */
@@ -541,16 +564,17 @@ G.Papi=function(root,P){
   // the one nearest the aircraft is shown, taken from a ray in the same PAPI colour interval so the lights in it are always right
   const pm=$('.pmodel',root),pmi=$('.pm-main',root),pmt=$('.pm-tele',root),pmti=$('.pm-tele img',root),pmg=$('.pm-tag',root);
   const KMP=60/(110/E),TS=P.units.map(u=>u[1]).sort((a,b)=>a-b),band=a=>TS.filter(t=>a>t).length;
-  let MV=null,mvCur='',mvV=null,mvRay=null,mvGa=null;
+  let MV=null,mvD=null,mvCur='',mvV=null,mvRay=null,mvGa=null;
   const mvURL=(k,id)=>`assets/aids/pilot/${k}/${id}.jpg?v=${MV.v}`;
-  function mvLoad(){const d=window.PAPI_VIEWS;if(!d||MV)return;const rays={},gab=[];
+  const pgate=G.LoadGate(root,null,{title:'模型畫面載入中',note:'載入完成前暫時無法操作'});   // 2026-10-21: no half-loaded model views
+  function mvLoad(){const d=window.PAPI_VIEWS;if(!d||MV||mvD)return;const rays={},gab=[];
     d.views.forEach(v=>{v.lr=Math.log(Math.max(1,Math.hypot(v.d,v.h)));if(v.seg==='gab'){gab.push(v);return}
       const r=rays[v.ray]||(rays[v.ray]={a:+v.ray,band:band(+v.ray),app:[],land:[],roll:[],ga:[]});r[v.seg].push(v)});
-    MV={v:d.v,rays:Object.values(rays),gab};pm.hidden=false;pv.setAttribute('viewBox','0 138 300 62');$('.papi',root).classList.add('has-mv');
-    const q=[];['app','land','roll','ga'].forEach(sg=>MV.rays.forEach(r=>r[sg].forEach(v=>{q.push(mvURL('main',v.id));if(v.tele)q.push(mvURL('tele',v.id))})));
-    gab.forEach(v=>q.push(mvURL('main',v.id),...(v.tele?[mvURL('tele',v.id)]:[])));   // approaches first, then the rest
-    let busy=0;const pump=()=>{while(busy<6&&q.length){const i=new Image();busy++;i.onload=i.onerror=()=>{busy--;pump()};i.src=q.shift()}};pump();
-    mvCur='';place(px,py)}
+    mvD={v:d.v,rays:Object.values(rays),gab};const U=(k,id)=>`assets/aids/pilot/${k}/${id}.jpg?v=${d.v}`;
+    const q=[];['app','land','roll','ga'].forEach(sg=>mvD.rays.forEach(r=>r[sg].forEach(v=>{q.push(U('main',v.id));if(v.tele)q.push(U('tele',v.id))})));
+    gab.forEach(v=>q.push(U('main',v.id),...(v.tele?[U('tele',v.id)]:[])));   // approaches first, then the rest
+    if(d.mb)$('.lg-card small',root).textContent=`共 ${q.length.toLocaleString()} 張、約 ${Math.round(d.mb)} MB；載入完成前暫時無法操作`;
+    pgate.start(q);pgate.then(()=>{MV=mvD;pm.hidden=false;pv.setAttribute('viewBox','0 138 300 62');$('.papi',root).classList.add('has-mv');mvCur='';place(px,py)})}
   function mvPick(x,y){
     if(mode==='goa'&&mvGa){const L=mvGa.gab?MV.gab:(mvGa.r?mvGa.r.ga:[]);if(!L.length)return null;
       const k=clamp((mvGa.x0-x)/(mvGa.x0-30),0,1),i=Math.round(k*L.length)-1;return i<0?(mvGa.v0||L[0]):L[Math.min(i,L.length-1)]}
@@ -564,7 +588,7 @@ G.Papi=function(root,P){
     pmi.src=mvURL('main',v.id);pmt.hidden=!v.tele;if(v.tele)pmti.src=mvURL('tele',v.id);
     const d=(px-OX)*KMP,h=(OY-py)*KMP/E;pmg.textContent=d>0?`模型畫面　距 PAPI ${Math.round(Math.hypot(d,h)).toLocaleString()} m　高 ${Math.round(h)} m`:`模型畫面　高 ${Math.round(h)} m`}
   const mvEv=()=>mvLoad();document.addEventListener('papi-views',mvEv);
-  if(window.PAPI_VIEWS)setTimeout(mvLoad);else if(!document.querySelector('script[data-pv]')){const sc=document.createElement('script');sc.src='assets/aids/pilot/views.js?v=119';sc.dataset.pv=1;sc.onload=()=>document.dispatchEvent(new Event('papi-views'));document.head.appendChild(sc)}
+  if(window.PAPI_VIEWS)setTimeout(mvLoad);else if(!document.querySelector('script[data-pv]')){const sc=document.createElement('script');sc.src='assets/aids/pilot/views.js?v=121';sc.dataset.pv=1;sc.onload=()=>document.dispatchEvent(new Event('papi-views'));document.head.appendChild(sc)}
   const tried=()=>{if(papiTried)return;papiTried=true;hint.classList.remove('demo');hint.classList.add('used');if(arr)arr.remove()};
   const xdOf=(x,y)=>OX+(x-OX)*(OY-YDH)/(OY-y);   // where the sight line (aircraft -> PAPI) meets the DH line
   function showPath(x,y){const xd=xdOf(x,y);path.setAttribute('x1',x);path.setAttribute('y1',y);path.setAttribute('x2',xd);path.setAttribute('y2',YDH);
@@ -597,7 +621,7 @@ G.Papi=function(root,P){
   place(PX0,angY(PX0,4));
   // idle sway 4.0° -> 1.8° -> 4.0° at the 決斷點 distance, 8 s a round: all five states pass by, and the aircraft crosses the DH line
   const sway=()=>{if(idle)return;const t0=Date.now();idle=setInterval(()=>{if(!document.hidden)place(PX0,angY(PX0,2.9+1.1*Math.cos((Date.now()-t0)/8000*2*Math.PI)))},40)};
-  return {play(){if(!papiTried)sway();else{halt();const my=tok;anim=tween(4200,k=>{if(my===tok)place(PX0,angY(PX0,4-.4*k))},ease.io,()=>{anim=null})}},destroy(){halt();document.removeEventListener('papi-views',mvEv)}};
+  return {play(){if(!papiTried)sway();else{halt();const my=tok;anim=tween(4200,k=>{if(my===tok)place(PX0,angY(PX0,4-.4*k))},ease.io,()=>{anim=null})}},destroy(){halt();pgate.cancel();document.removeEventListener('papi-views',mvEv)}};
 };
 
 /* ---------- end lights as a model video (user 2026-10-13, replaces the 2026-10-11 still with the green row framed): approach over the
