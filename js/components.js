@@ -476,7 +476,7 @@ let papiTried=false;
 G.Papi=function(root,P){
   const D=P.dh;
   root.innerHTML=`<div class="papi"><div class="papi-side"><svg viewBox="0 0 640 330" aria-label="PAPI 仰角示意"></svg><div class="phint ${papiTried?'used':'demo'}"><i></i>${G.touch?'用手指':'用滑鼠'}拖曳飛機到起點，放開就沿虛線進場</div></div>
-    <aside class="papi-pilot"><small>駕駛員看到的（左起 A～D，A 離跑道最遠）</small><svg viewBox="0 0 300 200"></svg><b class="pst"></b><span class="pen"></span>
+    <aside class="papi-pilot"><small>駕駛員看到的（左起 A～D，A 離跑道最遠）</small><div class="pmodel" hidden><img class="pm-main" alt="模型駕駛員畫面"><div class="pm-tele" hidden><img alt="PAPI 特寫"><span>PAPI 特寫</span></div><span class="pm-tag"></span><span class="pm-na">這個角度的模型畫面算圖中</span></div><svg viewBox="0 0 300 200"></svg><b class="pst"></b><span class="pen"></span>
       <p class="pdh"><span></span><button type="button" class="pga">重飛 ↗</button></p></aside></div>
     <div class="papi-rules"><div class="ph"><span><b>${D.head}</b><small>${D.sub}</small></span></div>
       <ul>${D.rules.map(([k,ok,t,r])=>`<li><button type="button" data-r="${k}" class="${ok?'ok':'ng'}"><i>${ok?'✓':'✗'}</i><span>${t}<em>→ ${r}</em></span></button></li>`).join('')}</ul></div>`;
@@ -534,7 +534,37 @@ G.Papi=function(root,P){
         flash.forEach((f,i)=>{f.setAttribute('cx',px);f.setAttribute('cy',py);f.setAttribute('stroke',c);
           setTimeout(()=>tween(800,t=>{f.setAttribute('r',10+30*t);f.setAttribute('opacity',1-t)},ease.out),i*220)})}}
     const r=k==='goa'?lastR:(RULE[k]||'');lastR=r;rbs.forEach(b=>b.classList.toggle('hit',b.dataset.r===r));
+    mvShow();
   }
+  // model pilot views (user 2026-10-20:「我要的是包含我在拖移時、放開游標飛機進場的過程以及重飛等等，都要有即時畫面喔」「以電腦為主」):
+  // pictures rendered from the model (work/papi_pilot_20261020) along 13 rays of constant elevation (approach, landing, roll, go-around);
+  // the one nearest the aircraft is shown, taken from a ray in the same PAPI colour interval so the lights in it are always right
+  const pm=$('.pmodel',root),pmi=$('.pm-main',root),pmt=$('.pm-tele',root),pmti=$('.pm-tele img',root),pmg=$('.pm-tag',root);
+  const KMP=60/(110/E),TS=P.units.map(u=>u[1]).sort((a,b)=>a-b),band=a=>TS.filter(t=>a>t).length;
+  let MV=null,mvCur='',mvV=null,mvRay=null,mvGa=null;
+  const mvURL=(k,id)=>`assets/aids/pilot/${k}/${id}.jpg?v=${MV.v}`;
+  function mvLoad(){const d=window.PAPI_VIEWS;if(!d||MV)return;const rays={},gab=[];
+    d.views.forEach(v=>{v.lr=Math.log(Math.max(1,Math.hypot(v.d,v.h)));if(v.seg==='gab'){gab.push(v);return}
+      const r=rays[v.ray]||(rays[v.ray]={a:+v.ray,band:band(+v.ray),app:[],land:[],roll:[],ga:[]});r[v.seg].push(v)});
+    MV={v:d.v,rays:Object.values(rays),gab};pm.hidden=false;pv.setAttribute('viewBox','0 138 300 62');$('.papi',root).classList.add('has-mv');
+    const q=[];['app','land','roll','ga'].forEach(sg=>MV.rays.forEach(r=>r[sg].forEach(v=>{q.push(mvURL('main',v.id));if(v.tele)q.push(mvURL('tele',v.id))})));
+    gab.forEach(v=>q.push(mvURL('main',v.id),...(v.tele?[mvURL('tele',v.id)]:[])));   // approaches first, then the rest
+    let busy=0;const pump=()=>{while(busy<6&&q.length){const i=new Image();busy++;i.onload=i.onerror=()=>{busy--;pump()};i.src=q.shift()}};pump();
+    mvCur='';place(px,py)}
+  function mvPick(x,y){
+    if(mode==='goa'&&mvGa){const L=mvGa.gab?MV.gab:(mvGa.r?mvGa.r.ga:[]);if(!L.length)return null;
+      const k=clamp((mvGa.x0-x)/(mvGa.x0-30),0,1),i=Math.round(k*L.length)-1;return i<0?(mvGa.v0||L[0]):L[Math.min(i,L.length-1)]}
+    const d=(x-OX)*KMP,h=(OY-y)*KMP/E,onRw=y>=OY-8.5;let ray=null;
+    if(onRw&&mvRay&&mvRay.roll.length)ray=mvRay;   // landing roll: the ray it landed on
+    else{const a=d>1?Math.atan(h/d)*180/Math.PI:3,b=band(a);let bd=1e9;MV.rays.forEach(r=>{if(r.band===b&&Math.abs(r.a-a)<bd){bd=Math.abs(r.a-a);ray=r}})}
+    if(!ray)return null;mvRay=ray;
+    const C=onRw?[...ray.land.slice(-1),...ray.roll]:[...ray.app,...ray.land],lr=Math.log(Math.max(1,Math.hypot(d,h)));
+    let v=null,vd=1e9;C.forEach(c=>{const e=onRw?Math.abs(c.x-x):Math.abs(c.lr-lr);if(e<vd){vd=e;v=c}});return v}
+  function mvShow(){if(!MV)return;const v=mvPick(px,py);pm.classList.toggle('na',!v);if(!v||v.id===mvCur)return;mvCur=v.id;mvV=v;
+    pmi.src=mvURL('main',v.id);pmt.hidden=!v.tele;if(v.tele)pmti.src=mvURL('tele',v.id);
+    const d=(px-OX)*KMP,h=(OY-py)*KMP/E;pmg.textContent=d>0?`模型畫面　距 PAPI ${Math.round(Math.hypot(d,h)).toLocaleString()} m　高 ${Math.round(h)} m`:`模型畫面　高 ${Math.round(h)} m`}
+  const mvEv=()=>mvLoad();document.addEventListener('papi-views',mvEv);
+  if(window.PAPI_VIEWS)setTimeout(mvLoad);else if(!document.querySelector('script[data-pv]')){const sc=document.createElement('script');sc.src='assets/aids/pilot/views.js?v=119';sc.dataset.pv=1;sc.onload=()=>document.dispatchEvent(new Event('papi-views'));document.head.appendChild(sc)}
   const tried=()=>{if(papiTried)return;papiTried=true;hint.classList.remove('demo');hint.classList.add('used');if(arr)arr.remove()};
   const xdOf=(x,y)=>OX+(x-OX)*(OY-YDH)/(OY-y);   // where the sight line (aircraft -> PAPI) meets the DH line
   function showPath(x,y){const xd=xdOf(x,y);path.setAttribute('x1',x);path.setAttribute('y1',y);path.setAttribute('x2',xd);path.setAttribute('y2',YDH);
@@ -545,7 +575,7 @@ G.Papi=function(root,P){
   const wait=ms=>new Promise(res=>setTimeout(res,ms));
   const done=at=>{mode='';auto=false;face=1;hidePath();rbs.forEach(b=>b.classList.remove('run'));place(at?at[0]:PX0,at?at[1]:angY(PX0,3.6))};
   // go-around: climb out ahead to the upper left corner and out of the picture, then come back in at the start of the approach (upper right)
-  async function goAround(my,back){mode='goa';place(px,py);const x0=px,y0=py,b=back||[560,angY(560,3.4)];
+  async function goAround(my,back){mvGa={x0:px,gab:!back,r:mvRay,v0:mvV};mode='goa';place(px,py);const x0=px,y0=py,b=back||[560,angY(560,3.4)];
     await fly(1200,x0,y0,30,18,-7,16,ease.io,true);if(my!==tok)return;
     plane.style.opacity=0;await wait(350);if(my!==tok)return;done(b);plane.style.opacity=1}
   // fly the dashed path (the sight line) from (x0, y0) to the DH line; there the rule that applies lights up; 'go' carries on down it to the runway
@@ -567,7 +597,7 @@ G.Papi=function(root,P){
   place(PX0,angY(PX0,4));
   // idle sway 4.0° -> 1.8° -> 4.0° at the 決斷點 distance, 8 s a round: all five states pass by, and the aircraft crosses the DH line
   const sway=()=>{if(idle)return;const t0=Date.now();idle=setInterval(()=>{if(!document.hidden)place(PX0,angY(PX0,2.9+1.1*Math.cos((Date.now()-t0)/8000*2*Math.PI)))},40)};
-  return {play(){if(!papiTried)sway();else{halt();const my=tok;anim=tween(4200,k=>{if(my===tok)place(PX0,angY(PX0,4-.4*k))},ease.io,()=>{anim=null})}},destroy(){halt()}};
+  return {play(){if(!papiTried)sway();else{halt();const my=tok;anim=tween(4200,k=>{if(my===tok)place(PX0,angY(PX0,4-.4*k))},ease.io,()=>{anim=null})}},destroy(){halt();document.removeEventListener('papi-views',mvEv)}};
 };
 
 /* ---------- end lights as a model video (user 2026-10-13, replaces the 2026-10-11 still with the green row framed): approach over the
@@ -591,6 +621,58 @@ G.PapiPhoto=function(root,src,units,cap,edge){   // edge (2026-10-16): {x,t} a d
     <div class="pp-zoom" style="background-image:url(${src});background-size:${Z*100}% ${Z*100}%;background-position:${((cx-.5/Z)*Z/(Z-1)*100).toFixed(2)}% ${((y-.5/Z)*Z/(Z-1)*100).toFixed(2)}%"><span>放大 4 倍</span>${edge?`<i class="pp-dim" style="left:${((Math.max(...xs)-(cx-.5/Z))*Z*100).toFixed(2)}%;width:${((edge.x-Math.max(...xs))*Z*100).toFixed(2)}%;top:${((y-(y-.5/Z))*Z*100+7).toFixed(2)}%"><b>${edge.t}</b></i>`:''}</div>
     <span class="pp-cap">${cap}</span></div>`;
   root.querySelector('.pphoto').onclick=()=>G.lightbox(src,cap);
+};
+
+/* ---------- 05 站 著陸區標線：修改前與細設圖 (2026-10-19). r1 was a schematic calculator; r2 (user:「我要你用這個模型空照圖去做 上面放修改後，
+   下面放修改前，然後橫移」): two model top-view strips, 修改後 above / 修改前 below, aligned on the threshold, in one sideways-scrolling box
+   (drag with the mouse, swipe, or the range under it). On each strip, per 150 m slot, the code's pattern (5.2.6.3 / 5.2.6.4 / 表 5-1, as
+   SITE.tdzCalc.cls / aim) against what is painted (row.draw): ✓ / ✗ 多畫 / 刪去 (near the aiming point). ---------- */
+G.TdzCalc=function(root,D){
+  const Sx=D.strip,X=d=>(d-Sx.d0)*Sx.pxm,YC=Sx.yc,HW=22.5*Sx.pxm,SL=22.5;
+  const clsOf=l=>{let c=D.cls[0];D.cls.forEach(x=>{if(l>=x[0])c=x});return c},aimOf=l=>{let c=D.aim[0];D.aim.forEach(x=>{if(l>=x[0])c=x});return c};
+  const sta=m=>{const t=Math.round(m);return `${Math.floor(t/1000)}K+${String(t%1000).padStart(3,'0')}`};
+  const pat=arr=>{let s='';const last=arr.reduce((k,x,i)=>x>0?i:k,-1);for(let i=0;i<=last;i++)s+=arr[i]>0?arr[i]:'(無)';return s||'—'};
+  const rows=D.rows.map(r=>{const c=clsOf(r.lda),am=aimOf(r.lda),L=am[2];
+    const slots=[1,2,3,4,5,6].map(k=>{const p=150*k,n=c[2][k-1]||0,gap=Math.max(r.aim-(p+SL),p-(r.aim+L)),del=n>0&&gap<=50,d=(r.draw.find(x=>x[0]===p)||[0,0])[1];
+      return {p,n,del,eff:del?0:n,d}});
+    const extra=slots.filter(s=>s.d&&!s.eff).map(s=>s.p),diff=slots.filter(s=>s.d&&s.eff&&s.d!==s.eff).map(s=>s.p),miss=slots.filter(s=>s.eff&&!s.d).map(s=>s.p);
+    return Object.assign({},r,{c,am,L,slots,code:pat(slots.map(s=>s.eff)),drawn:pat(slots.map(s=>s.d)),extra,diff,miss,ok:!extra.length&&!diff.length&&!miss.length})});
+  const verdict=r=>r.ok?'✓ 與規範相符':'✗ '+[r.extra.length?`多畫 ${r.extra.join('、')} m`:'',r.diff.length?`${r.diff.join('、')} m 條數不同`:'',r.miss.length?`少畫 ${r.miss.join('、')} m`:''].filter(Boolean).join('；');
+  const rowHTML=r=>`<div class="tda-row" data-k="${r.k}" style="--h:${Sx.h}"><img src="${r.img}" alt="${r.label}俯視" draggable="false"><svg viewBox="0 0 ${Sx.w} ${Sx.h}" aria-hidden="true"></svg>
+      <span class="tda-tag ${r.ok?'ok':'ng'}"><b>${r.label}</b>${r.sub}</span></div>`;
+  root.innerHTML=`<div class="tda">
+    <div class="chips tda-jump">${D.jumps.map(([t,d])=>`<button type="button" class="chip" data-d="${d}">${t}</button>`).join('')}</div>
+    <div class="tda-scroll"><div class="tda-track">${rowHTML(rows[0])}<svg class="tda-axis" viewBox="0 0 ${Sx.w} 46" aria-hidden="true"></svg>${rowHTML(rows[1])}</div></div>
+    <div class="tda-bar"><span>← 拖曳左右移動 →</span><input type="range" min="0" max="1000" value="0" aria-label="左右移動"></div>
+    <dl class="tda-info">${rows.map(r=>`<dt>${r.label}<small>${r.lda.toLocaleString()} m</small></dt><dd>依規範 <code>${r.code}</code>　${r.name} <code>${r.drawn}</code>　<span class="${r.ok?'ok':'ng'}">${verdict(r)}</span></dd>`).join('')}
+      <dt>規範</dt><dd>1,500～2,400 m 為 4 對（6、6、4、4 條），2,400 m 以上為 6 對（6、6、4、4、2、2 條）；自跑道頭 150 m 起每 150 m 一對，離著陸點標線 50 m 內的刪去。</dd></dl></div>`;
+  const GR='#3ecf8e',RD='#ff4d4d',WH='#eef3f8',YE='#ffcc00',MU='#c9d2db';
+  const lab=(g,x,y,t,col,anchor)=>{const tx=T(g,x,y,t,{'text-anchor':anchor||'middle',fill:col,'font-size':17,'font-weight':700,stroke:'rgba(11,16,22,.85)','stroke-width':5,'paint-order':'stroke'});return tx};
+  rows.forEach(r=>{const svg=$(`.tda-row[data-k="${r.k}"] svg`,root);
+    r.slots.forEach(s=>{const x0=X(s.p)-5,x1=X(s.p+SL)+5,cx=(x0+x1)/2;
+      if(!s.n&&!s.d)return;
+      const bad=s.d!==s.eff;
+      if(s.d&&bad)el('rect',{x:x0,y:YC-HW+2,width:x1-x0,height:2*HW-4,fill:'rgba(255,77,77,.18)',stroke:RD,'stroke-width':3,'stroke-dasharray':'8 5',rx:4},svg);
+      else if(s.d)el('rect',{x:x0,y:YC-HW+2,width:x1-x0,height:2*HW-4,fill:'none',stroke:GR,'stroke-width':2,rx:4,opacity:.8},svg);
+      const t=s.del&&!s.d?`${s.p} m 刪去（近著陸點）✓`:s.d&&!s.eff?`✗ 多畫 ${s.d} 條`:bad?`✗ ${s.d} 條（應 ${s.eff}）`:`✓ ${s.d} 條`;
+      lab(svg,cx,YC-HW-12,t,s.del&&!s.d?MU:bad?'#ff6b5e':GR);
+      lab(svg,cx,Sx.h-10,sta(r.sta0+s.p),WH)});
+    const ax=X(r.aim),ax1=X(r.aim+r.L);lab(svg,(ax+ax1)/2,YC+HW+24,`著陸點 ${r.aim} m`,YE);
+    lab(svg,X(0)+6,YC+HW+24,`跑道頭 ${sta(r.sta0)}`,YE,'start')});
+  const axis=$('.tda-axis',root);el('line',{x1:X(0),y1:14,x2:X(1000),y2:14,stroke:'rgba(255,255,255,.35)'},axis);
+  [0,150,300,450,600,750,900].forEach(d=>{el('line',{x1:X(d),y1:6,x2:X(d),y2:22,stroke:'rgba(255,255,255,.6)','stroke-width':2},axis);
+    T(axis,X(d),40,d?`${d} m`:'跑道頭 0',{'text-anchor':'middle',fill:'#93a3b3','font-size':16})});
+  // panning: native scroll (trackpad / touch), mouse drag, the range, and the jump chips
+  const sc=$('.tda-scroll',root),rg=$('.tda-bar input',root),track=$('.tda-track',root);
+  const sync=()=>{const m=sc.scrollWidth-sc.clientWidth;rg.value=m>0?Math.round(sc.scrollLeft/m*1000):0};
+  sc.addEventListener('scroll',sync,{passive:true});
+  rg.addEventListener('input',()=>{sc.scrollLeft=(sc.scrollWidth-sc.clientWidth)*rg.value/1000});
+  let dx=null,sl=0;
+  sc.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button!==0)return;dx=e.clientX;sl=sc.scrollLeft;sc.classList.add('grab');try{sc.setPointerCapture(e.pointerId)}catch(_){}});
+  sc.addEventListener('pointermove',e=>{if(dx==null)return;sc.scrollLeft=sl-(e.clientX-dx)});
+  const end=()=>{dx=null;sc.classList.remove('grab')};sc.addEventListener('pointerup',end);sc.addEventListener('pointercancel',end);
+  $$('.tda-jump .chip',root).forEach(b=>b.onclick=()=>{const k=track.clientWidth/Sx.w;sc.scrollTo({left:Math.max(0,X(+b.dataset.d)*k-sc.clientWidth/2),behavior:G.reduced?'auto':'smooth'})});
+  return {rows};
 };
 
 })();

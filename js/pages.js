@@ -132,7 +132,9 @@ G.pages.phase=function(){
       <p class="tdz-note" hidden></p>
       <p class="note">跑道示意圖的長度依 STA 比例、寬度放大；照片為同視角俯視全景，上下兩條分別是虛線框標示的兩段。</p>
     </section>
+    <section class="block">${sec('規範','著陸區標線：修改前與細設圖',S.tdzCalc.lead)}<div class="tdz-host rv"></div><p class="note">${S.tdzCalc.note}</p></section>
     ${G.pager(route)}${G.footer()}`);
+  const tdz=G.TdzCalc($('.tdz-host',root),S.tdzCalc);   // 2026-10-19 著陸區標線計算器
   const showT=titleIn(root);const map=G.PhaseMap($('.ph-map',root));const cmp=G.Compare($('.cmp-host',root));const side=$('.side',root);
   new Set(steps.flatMap(s=>s.imgs.map(x=>x.img))).forEach(src=>{const im=new Image();im.src=src});
   let cur=-1,timer=null;

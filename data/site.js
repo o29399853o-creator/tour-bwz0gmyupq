@@ -88,6 +88,26 @@ window.SITE={
   /* 05 站 STEP2 / STEP6 side note. 民用機場設計暨運作規範 ATP-AE-100512 (114.02.20) 5.2.6.3 (p.5-10): 「1500m（含）以上，小於 2400m」→
      「4（6,6,4,4）」,「2400m（含）以上」→「6（6,6,4,4,2,2）」; 5.2.6.4 (p.5-11):「著陸區標線自距跑道頭 150m 起並以 150m 間距繪設，然與著陸點標線
      相重合或位於著陸點標線 50m 範圍內者應刪去。」 The source is not shown (user 2026-10-16:「來源不用加上去」). */
+  /* 05 站 著陸區標線計算器 (2026-10-19). Rules, 民用機場設計暨運作規範 ATP-AE-100512 (114.02.20), read on the code's pages:
+     5.2.6.3 (p.5-10) pairs by 可用之降落距離: <900 1 (6); 900-1200 2 (6,6); 1200-1500 3 (6,6,4); 1500-2400 4 (6,6,4,4); >=2400 6 (6,6,4,4,2,2);
+     5.2.6.4 (p.5-10/5-11) form B 22.5 x 1.8 m, 1.5 m apart; inner spacing = the aiming point's; from 150 m at 150 m spacing, pairs that coincide
+     with the aiming point marking or lie within 50 m of it are deleted; 5.2.5.3 (p.5-9) aiming point start not less than 表 5-1 (<800 150 m,
+     800-1200 250 m, 1200-2400 300 m, >=2400 400 m; length 30-45 / 30-45 / 45-60 / 45-60 m), with a PAPI it coincides with the visual approach
+     slope origin. Drawings: 修改前 = 標線平面配置圖 D-04～D-06 (threshold 0K+000), 細設圖 移航後 = STEP2 D-18～D-20 (threshold 0K+712;
+     STEP6 D-33～D-35 the same from 2K+043). Each 'draw' entry = [distance from the threshold of the pair's start, number of stripes]. */
+  tdzCalc:{
+    cls:[[0,'900 m 以下',[6]],[900,'900～1,200 m',[6,6]],[1200,'1,200～1,500 m',[6,6,4]],[1500,'1,500～2,400 m',[6,6,4,4]],[2400,'2,400 m 以上',[6,6,4,4,2,2]]],
+    aim:[[0,150,30],[800,250,30],[1200,300,45],[2400,400,45]],   // [from LDA, minimum start, drawn length]
+    // 2026-10-19 r2 (user:「我要你用這個模型空照圖去做 上面放修改後，下面放修改前，然後橫移」): model top views, 2261 x 240 px each, from 60 m
+    // before the threshold to 1,000 m after it (2.1333 px/m, centre line at y 120): work/tdz_compare_20261019/make_strips.py. The 修改前 view
+    // got its touchdown zone / aiming point marks in the model (render_before_tdz.py: STEP2 objects moved back 712 m; D-04～D-06, D-13).
+    strip:{w:2261,h:240,pxm:1920/900,d0:-60,yc:120},
+    rows:[
+      {k:'after',label:'修改後',sub:'細設圖 移航後｜跑道頭 0K+712｜可用長度 2,043 m',img:'assets/phase/tdz_after.jpg',lda:2043,aim:400,sta0:712,draw:[[150,6],[300,6],[600,4],[750,2],[900,2]],name:'細設圖'},
+      {k:'before',label:'修改前',sub:'原跑道頭 0K+000｜可用長度 2,755 m',img:'assets/phase/tdz_before.jpg',lda:2755,aim:400,sta0:0,draw:[[150,6],[300,6],[600,4],[750,2],[900,2]],name:'修改前'}],
+    jumps:[['跑道頭',0],['150～300 m',220],['著陸點 400 m',420],['600～900 m',760]],
+    lead:'上排修改後、下排修改前，兩排以跑道頭對齊；左右拖曳畫面（或拉下方的捲軸），比對同一距離的著陸區標線。',
+    note:'模型俯視畫面。修改前的著陸區、著陸點標線依細設圖補建於模型。'},
   tdzNote:'移航後可用長度約 2,043 m，屬 1,500～2,400 m：著陸區標線應為 4 對（6、6、4、4 條），自跑道頭 150 m 起每 150 m 一對；450 m 那對落在著陸點標線 50 m 內，刪去。圖上另有 750、900 m 兩對，是 2,400 m 以上跑道的配置，不符。',
   /* 施工管制: 24 h clock rings */
   /* user 2026-10-10: zone-1 barriers stay up all day; only the ones in front of taxiway 2 come down (up 17:00-21:00); no counts */
