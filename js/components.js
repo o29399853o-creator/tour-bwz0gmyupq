@@ -588,7 +588,7 @@ G.Papi=function(root,P){
     pmi.src=mvURL('main',v.id);pmt.hidden=!v.tele;if(v.tele)pmti.src=mvURL('tele',v.id);
     const d=(px-OX)*KMP,h=(OY-py)*KMP/E;pmg.textContent=d>0?`模型畫面　距 PAPI ${Math.round(Math.hypot(d,h)).toLocaleString()} m　高 ${Math.round(h)} m`:`模型畫面　高 ${Math.round(h)} m`}
   const mvEv=()=>mvLoad();document.addEventListener('papi-views',mvEv);
-  if(window.PAPI_VIEWS)setTimeout(mvLoad);else if(!document.querySelector('script[data-pv]')){const sc=document.createElement('script');sc.src='assets/aids/pilot/views.js?v=121';sc.dataset.pv=1;sc.onload=()=>document.dispatchEvent(new Event('papi-views'));document.head.appendChild(sc)}
+  if(window.PAPI_VIEWS)setTimeout(mvLoad);else if(!document.querySelector('script[data-pv]')){const sc=document.createElement('script');sc.src='assets/aids/pilot/views.js?v=123';sc.dataset.pv=1;sc.onload=()=>document.dispatchEvent(new Event('papi-views'));document.head.appendChild(sc)}
   const tried=()=>{if(papiTried)return;papiTried=true;hint.classList.remove('demo');hint.classList.add('used');if(arr)arr.remove()};
   const xdOf=(x,y)=>OX+(x-OX)*(OY-YDH)/(OY-y);   // where the sight line (aircraft -> PAPI) meets the DH line
   function showPath(x,y){const xd=xdOf(x,y);path.setAttribute('x1',x);path.setAttribute('y1',y);path.setAttribute('x2',xd);path.setAttribute('y2',YDH);
