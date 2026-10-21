@@ -41,7 +41,7 @@ G.FramePlayer=function(root,frames,fps,badge,hold){
 G.LoadGate=function(host,urls,o={}){
   host.classList.add('lg-host');
   const el=h('div','lgate',`<div class="lg-card"><i class="lg-spin"></i><b>${o.title||'畫面載入中'}</b><div class="lg-bar"><i></i></div><span class="lg-n">準備中</span><small>${o.note||'載入完成前暫時無法操作'}</small></div>`,host);
-  const bar=$('.lg-bar i',el),num=$('.lg-n',el),card=$('.lg-card',el),C=o.conc||8;let n=0,ok=0,next=0,busy=0,fin=false,alive=true,list=[],cbs=[];
+  const bar=$('.lg-bar i',el),num=$('.lg-n',el),card=$('.lg-card',el),C=o.conc||12;let n=0,ok=0,next=0,busy=0,fin=false,alive=true,list=[],cbs=[];
   // the card sits in the middle of the part of the block that is on screen (a tall block on a phone: its middle may be off screen)
   const pos=()=>{const r=host.getBoundingClientRect(),t=Math.max(r.top,64),b=Math.min(r.bottom,innerHeight),ch=card.offsetHeight;
     card.style.top=Math.max(8,Math.min(r.height-ch-8,(t+b)/2-r.top-ch/2))+'px'};
@@ -566,7 +566,9 @@ G.Papi=function(root,P){
   const KMP=60/(110/E),TS=P.units.map(u=>u[1]).sort((a,b)=>a-b),band=a=>TS.filter(t=>a>t).length;
   let MV=null,mvD=null,mvCur='',mvV=null,mvRay=null,mvGa=null;
   const mvURL=(k,id)=>`assets/aids/pilot/${k}/${id}.jpg?v=${MV.v}`;
-  const pgate=G.LoadGate(root,null,{title:'模型畫面載入中',note:'載入完成前暫時無法操作'});   // 2026-10-21: no half-loaded model views
+  // 2026-10-21: no half-loaded model views. 32 at a time: on GitHub Pages a picture takes ~0.24 s to arrive whatever its size, so 8 at a
+  // time needed ~65 s for the 2,114 pictures (measured online, HTTP/2) - the count of requests, not the MB, set the time
+  const pgate=G.LoadGate(root,null,{title:'模型畫面載入中',note:'載入完成前暫時無法操作',conc:32});
   function mvLoad(){const d=window.PAPI_VIEWS;if(!d||MV||mvD)return;const rays={},gab=[];
     d.views.forEach(v=>{v.lr=Math.log(Math.max(1,Math.hypot(v.d,v.h)));if(v.seg==='gab'){gab.push(v);return}
       const r=rays[v.ray]||(rays[v.ray]={a:+v.ray,band:band(+v.ray),app:[],land:[],roll:[],ga:[]});r[v.seg].push(v)});
