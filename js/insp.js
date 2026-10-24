@@ -22,7 +22,7 @@ function photos(it){   // field: one photo + a small inset; sampling with an in-
   return `<div class="iq-ph">${it.photos.map((p,j)=>`<img src="${p.src}" alt="" loading="lazy" data-j="${j}" class="${j?'sm':''}">`).join('')}${it.photos[0]?tag(it.photos[0]):''}</div>`}
 function cards(host,items,label,d0=0){
   host.innerHTML=items.map((it,i)=>`<article class="iq-card" style="animation-delay:${(d0+i)*70}ms">${photos(it)}
-    <div class="iq-tx"><b>${it.name}</b>${it.val?`<em>${it.val}</em><small class="iq-src">依據：${it.src}</small>`:''}</div></article>`).join('');   // only standard values: the photos' own notes (measured values) are not shown
+    <div class="iq-tx"><b>${it.name}</b>${it.val?`<em>${it.val}</em>`:''}</div></article>`).join('');   // only standard values: the photos' own notes (measured values) are not shown
   $$('.iq-card',host).forEach((c,i)=>$$('img',c).forEach(im=>im.onclick=()=>{const p=items[i].photos[+im.dataset.j];G.lightbox(p.src,`${label}・${items[i].name}${p.role?`（${ROLE[p.role]}）`:''}　照片 ${p.roc}`)}))}
 // zone 3: the excavation and the layers filling it (thicknesses from SITE.zones[3].section, depth = their sum, as drawing E-41);
 // the pit sits flush right, against the existing runway (user 2026-10-12: 「示意不要放中間，靠右貼著放」), the depth on its left
@@ -75,7 +75,7 @@ function duct2(svg){svg.setAttribute('viewBox','0 0 520 170');const y=92;
 G.pages.insp=function(){
   const {head,sec,page,titleIn}=G._pg;const route='#/insp',D=(window.INSPI||{}).groups||{};
   const root=page('insp-page',`${head(route)}
-    <p class="lead rv">查驗依工區一～四分開介紹，目前有資料的是工區三，工區一、二、四待補充；另外是助航燈光的管線查驗。路面每一層分成「施工查驗」（現場量測、檢查）與「材料取樣與試驗」（現場取樣，送實驗室會驗；有實驗室會驗照片的項目，兩張並排）兩組；黃字是標準值，取自細部設計成果附冊（施工規範）與細部設計圖說，沒有標準值的項目不寫數字。點照片可以放大。</p>
+    <p class="lead rv">查驗依工區一～四分開介紹，目前有資料的是工區三，工區一、二、四待補充；另外是助航燈光的管線查驗。路面每一層分成「施工查驗」（現場量測、檢查）與「材料取樣與試驗」（現場取樣，送實驗室會驗；有實驗室會驗照片的項目，兩張並排）兩組；黃字是標準值，沒有標準值的項目不寫數字。點照片可以放大。</p>
     <section class="block">${sec('路面','分區查驗','點工區切換。')}
       <div class="iq-ztabs rv">${ZN.map(n=>`<button type="button" data-z="${n}" style="--zc:var(--z${n})"><b>工區${CN[n]}</b><small>${S.zones[n].cap}</small>${n===3?'':'<em>待補充</em>'}</button>`).join('')}</div>
       ${ZN.filter(n=>n!==3).map(n=>`<div class="iq-zp iq-todo" data-z="${n}" style="--zc:var(--z${n})"><span>工區${CN[n]}・${S.zones[n].cap}</span><b>待補充</b><small>查驗項目與照片待補充</small></div>`).join('')}
@@ -85,7 +85,7 @@ G.pages.insp=function(){
     <section class="block">${sec('助航燈光','管線查驗','手孔與手孔之間的一次側管道，以及手孔到邊燈的二次側管道。')}
       <div class="iq-nav rv"><div class="iq-tabs">${NAV.filter(n=>D[n.k]&&D[n.k].length).map(n=>`<button type="button" data-k="${n.k}">${n.n}<small>${n.sub}</small></button>`).join('')}</div>
         <div class="iq-navbody"><svg class="iq-sk"></svg><div class="iq-cards"></div></div></div>
-      <p class="note">資料來源：查驗項目與照片取自監造施工查驗照片與實驗室會驗照片；標準值取自「細部設計成果（第二階段細部設計）附冊合併 V3.2」施工規範第02716、02722、02747、02796 章與「細部設計圖說 V3.2」E-40、E-41。斷面與平面圖為示意，只標圖說上的數字，不依比例。</p></section>
+      <p class="note">資料來源：查驗項目與照片取自監造施工查驗照片與實驗室會驗照片。斷面與平面圖為示意，不依比例。</p></section>
     ${G.pager(route)}${G.footer()}`);
   const showT=titleIn(root);
   // zone 3

@@ -68,6 +68,12 @@ function prefetch(i){const st=S.stops[i],A=window.ASSETS;if(!st||!A||warm.has(i)
   else if(st.route==='#/film')L=A.film.chap.chapters.map(c=>c.thumb).filter(Boolean);
   L.forEach(s=>{const im=new Image();try{im.fetchPriority='low'}catch(e){}im.decoding='async';im.src=s})}
 window.addEventListener('hashchange',go);
+/* 2026-10-22 (user:「有辦法在進入首頁時開始載入嗎?」): the PAPI live pictures (G.PapiPre) start loading quietly once the first page has settled -
+   desktop only (phones / data saver / slow links wait until the PAPI section itself) - so they are in before the visitor reaches station 06 */
+(()=>{const ok=()=>{try{if(G.narrow()||matchMedia('(pointer:coarse)').matches)return false}catch(e){}const c=navigator.connection;
+    return !(c&&(c.saveData||/(^|-)2g|3g/.test(c.effectiveType||'')))};
+  const kick=()=>setTimeout(()=>{if(!ok())return;const s=()=>G.PapiPre.start(12);'requestIdleCallback' in window?requestIdleCallback(s,{timeout:5000}):s()},3000);
+  if(document.readyState==='complete')kick();else addEventListener('load',kick,{once:true})})();
 /* ---------- keyboard: ← → previous / next stop (viewers on screen take the arrows first and call preventDefault) ---------- */
 G.app={cur:()=>cur};
 const toast=G.toast=msg=>{const t=h('div','toast',msg,document.body);setTimeout(()=>t.classList.add('on'),20);setTimeout(()=>{t.classList.remove('on');setTimeout(()=>t.remove(),400)},2600)};

@@ -81,7 +81,7 @@ function wz4Viewer(host){
   const clean=G.narrow()&&W.clean_m?W.clean_m:W.clean;
   return G.StateViewer(host,{frames:vf(W.frames),live:G.LiveWZ4,notes:S.wz4.notes,
     offsets:Object.assign({},W.label_offsets,{'反射裂縫抑制網（玻璃纖維，寬 1 m）':[-80,-130],'接縫處（約每 7 m 一道）':[110,120],'既有水泥混凝土版塊':[100,-130],'20 cm 密級配改質瀝青混凝土':[100,-140]}),
-    tag:{text:'依 F-23　反射裂縫抑制材鋪設位置',on:[0,1,2,3]},
+    tag:{text:'反射裂縫抑制材鋪設位置',on:[0,1,2,3]},
     states:[{f:W.rest[1],title:t(C[0]),sub:C[0][2],short:'刨除既有瀝青',thumb:W.thumbs[1],spots:[['既有水泥混凝土版塊',.47,.66]]},
             {f:W.rest[2],title:t(C[1]),sub:C[1][2],short:'接縫鋪抑制網',thumb:W.thumbs[2]},
             {src:clean[1],title:t(C[2]),sub:C[2][2],short:'加鋪改質瀝青',thumb:W.thumbs[3],spots:[['20 cm 密級配改質瀝青混凝土',.5,.62]]},
@@ -132,7 +132,7 @@ G.pages.phase=function(){
       <p class="tdz-note" hidden></p>
       <p class="note">跑道示意圖的長度依 STA 比例、寬度放大；照片為同視角俯視全景，上下兩條分別是虛線框標示的兩段。</p>
     </section>
-    <section class="block">${sec('規範','著陸區標線：修改前與細設圖',S.tdzCalc.lead)}<div class="tdz-host rv"></div><p class="note">${S.tdzCalc.note}</p></section>
+    <section class="block">${sec('標線','著陸區標線：修改前與修改後',S.tdzCalc.lead)}<div class="tdz-host rv"></div><p class="note">${S.tdzCalc.note}</p></section>
     ${G.pager(route)}${G.footer()}`);
   const tdz=G.TdzCalc($('.tdz-host',root),S.tdzCalc);   // 2026-10-19 著陸區標線計算器
   const showT=titleIn(root);const map=G.PhaseMap($('.ph-map',root));const cmp=G.Compare($('.cmp-host',root));const side=$('.side',root);
@@ -146,7 +146,7 @@ G.pages.phase=function(){
     const no=$('.no b',side);no.classList.remove('flip');void no.offsetWidth;no.textContent=G.pad(i+1);no.classList.add('flip');
     const h3=$('h3',side);h3.classList.remove('on');h3.textContent=s.title;setTimeout(G.chars(h3,24),30);$('p',side).textContent=s.sub;
     $('.legend',side).innerHTML=(s.imgs[1]?`<span><i class="l"></i>左：${s.lab[0]}</span><span><i class="r"></i>右：${s.lab[1]}</span><small>拖曳畫面中間的把手比較前後</small>`:'<small>施工前的既有跑道標線</small>')
-      +(s.chk?`<small class="chk-key">${[['ok','✓','符合'],['tbd','？','待確認'],['ng','✗','不符']].filter(([k])=>s.chk.some(c=>c[1]===k)).map(([k,b,t])=>`<b class="${k}">${b}</b>${t}`).join('　')}（對照規範）</small>`:'')
+      +(s.chk?`<small class="chk-key">${[['ok','✓','符合'],['tbd','？','待確認'],['ng','✗','不符']].filter(([k])=>s.chk.some(c=>c[1]===k)).map(([k,b,t])=>`<b class="${k}">${b}</b>${t}`).join('　')}</small>`:'')
 ;
     const tz=$('.tdz-note',root);tz.hidden=!s.tdz;if(s.tdz)tz.innerHTML=`<b>著陸區標線</b>${S.tdzNote}`;   // r2: under the photo, full width
     const ob=$('.obl',side);ob.style.display=s.obl?'':'none';if(s.obl){$('img',ob).src=P[s.obl].img;ob.onclick=()=>G.lightbox(P[s.obl].img,P[s.obl].caption.join('　'))}
@@ -190,10 +190,10 @@ G.pages.aids=function(){
     <section class="block">${sec('迴路','跑道邊燈：R1、R3 兩個迴路',`切換${G.stacked()?'下方':'右邊'}的開關：只開 R1、只開 R3 或全開，看哪些燈會亮；下方示意圖的燈會從 03 端依序亮起。`)}<div class="circ-host rv"></div></section>
     <section class="block">${sec('末端燈',cap[0][1],cap[0][2]+'。下面的小飛機示範：進場時看到綠光，在跑道上看到紅光。')}
       <div class="end-grid rv"><div class="thr-host"></div><div class="end-demo"><svg></svg></div></div></section>
-    <section class="block">${sec('PAPI',S.papi.title,S.papi.lead)}<div class="papi-host rv"></div>
+    <section class="block papi-block">${sec('PAPI',S.papi.title,S.papi.lead)}<div class="papi-host rv"></div>
       <div class="papi-more rv"><dl class="src">${S.papi.facts.map(f=>`<dt>${f[0]}</dt><dd>${f[1]}</dd>`).join('')}</dl>
         <div class="papi-photo"></div></div>
-      <p class="note">${S.papi.src}。上方仰角圖為示意，角度放大畫出，決斷高度也是示意位置；${G.stacked()?'下方':'右側'}為模型畫面（兩個迴路全開的夜間畫面）。</p></section>
+      <p class="note">上方仰角圖為示意，角度放大畫出，決斷高度也是示意位置；${G.stacked()?'下方':'右側'}為模型畫面（兩個迴路全開的夜間畫面）。</p></section>
     <section class="block">${sec('地下',X.s10.title,X.s10.sub+'。點畫面，地面打開看地下的管路。')}<div class="sv-host rv"></div></section>
     <section class="block">${sec('標誌牌',S.signs.title,S.signs.sub)}<div class="sign rv"><div class="player"></div></div></section>
     ${G.pager(route)}${G.footer()}`);
