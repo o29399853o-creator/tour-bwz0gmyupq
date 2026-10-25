@@ -69,7 +69,7 @@ G.PapiPre=(()=>{let st=0,d=null,list=[],ok=0,next=0,busy=0,C=0,keep=[],subs=[],c
     const by=sg=>d.views.filter(v=>v.seg===sg);['app','land','roll','ga','gab'].forEach(sg=>by(sg).forEach(v=>{q.push(U('main',v.id));if(v.tele)q.push(U('tele',v.id))}));
     list=[...new Set(q)];subs.forEach(f=>f(0,list.length));if(!list.length)fin();else pump()};
   return {start(c){C=Math.max(C,c||12);if(st===2){pump();return}if(st===1)return;st=1;
-      if(window.PAPI_VIEWS){begin();return}const s=document.createElement('script');s.src='assets/aids/pilot/views.js?v=126';s.onload=s.onerror=begin;document.head.appendChild(s)},
+      if(window.PAPI_VIEWS){begin();return}const s=document.createElement('script');s.src='assets/aids/pilot/views.js?v=129';s.onload=s.onerror=begin;document.head.appendChild(s)},
     get data(){return d},get done(){return st===2&&(!d||ok>=list.length)},
     progress(f){subs.push(f);if(list.length)f(ok,list.length)},off(f){subs=subs.filter(g=>g!==f)},then(f){if(this.done)f();else cbs.push(f)}};
 })();

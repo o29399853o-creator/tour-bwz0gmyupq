@@ -158,6 +158,6 @@ window.SITE={
     tools:[['Blender 5.1','模型、算圖、影片輸出（背景執行）'],['Python／Pillow','影格合成、字幕、標註、網站素材'],['HTML／CSS／JavaScript','網站本身，不用外部套件，可離線開啟'],['Claude、Codex','撰寫與檢查腳本、網站程式；所有輸出由承辦人驗收']],
     sources:[['模型說明','模型為示意，位置依設計展示配準，非測量成果。'],
       
-      ['飛機模型','"Boeing 747-100" by Marine, CC BY 4.0；"Boeing-787- Dreamliner" by themaker845, CC BY 4.0；"F-16 Fighting Falcon - Fighter Jet - Free" by bohmerang, CC BY-NC-SA 4.0（非商用）'],
+      ['飛機模型','"Boeing 747-100" by Marine, CC BY 4.0；"Boeing-787- Dreamliner" by themaker845, CC BY 4.0'],
       ['版本','網站 2026-10-10 全站版；導覽影片 v6']]}
 };
