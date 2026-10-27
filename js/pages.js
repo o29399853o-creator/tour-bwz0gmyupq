@@ -16,7 +16,8 @@ G.pager=route=>{const i=G.idx(route),p=S.stops[i-1],n=S.stops[i+1];const chev='<
     (n?`<a class="next" href="${n.route}" style="--zc:${n.zone?G.COL[n.zone]:'#ffcc00'}"><small>下一站　${G.stopNo(i+1)}</small><b>${nameOf(n)}</b><em>${subOf(n)}</em>${chev}</a>`
       :`<a class="next" href="#/"><small>導覽結束</small><b>回到起點</b><em>回到跑道總覽</em>${chev}</a>`)+'</nav>'};
 G.footer=()=>`<footer class="foot">模型為示意，位置依設計展示配準，非測量成果。　<a href="#/" data-replay-intro>重播片頭</a><br>
-  飛機模型（示意，非 MSFS 素材）："Boeing 747-100" by Marine, CC BY 4.0／"Boeing-787- Dreamliner" by themaker845, CC BY 4.0</footer>`;
+  飛機模型（示意，非 MSFS 素材）："Boeing 747-100" by Marine, CC BY 4.0／"Boeing-787- Dreamliner" by themaker845, CC BY 4.0<br>
+  施工機具模型（示意）："Excavator (CAT)" by sarvesh12／"Road roller truck" by Sidra／"HINO+dump+truck+3d+model" by 3DMODEL，皆 CC BY 4.0（挖土機破碎頭為自製）</footer>`;
 const sec=(kick,title,lead)=>`<h2 class="sec rv"><span class="kick">${kick}</span>${title}</h2>${lead?`<p class="lead rv">${lead}</p>`:''}`;
 const page=(cls,html)=>{const r=h('div','page '+cls);r.innerHTML=`<div class="wrap">${html}</div>`;return r};
 const titleIn=root=>{const t=$('.pg-head h1',root);return t?G.chars(t,70):()=>{}};
@@ -95,10 +96,11 @@ G.pages.zone=function(n){
   const hero=z=>{const Z=S.zones[z];
     return `${two?`<h2 class="zpart-h rv" id="zp-${z}" style="--zc:${G.COL[z]}"><i></i>${Z.name}<small>${Z.cap}</small></h2>`:''}
     <div class="zone-hero" data-z="${z}"><div class="player rv"></div><aside class="facts rv" data-d="150"><h3>重點數據</h3>${Z.facts.map(f=>`<div class="fact"><span>${f[0]}</span><b>${f[1]}</b></div>`).join('')}</aside></div>`};
-  const z0=parts[0],Z0=S.zones[z0],V=VV[z0],same=two?'工區一、二相同；':'';
+  const z0=parts[0],Z0=S.zones[z0],V=z0===3&&A.wz3seq?null:VV[z0],same=two?'工區一、二相同；':'';   // 2026-10-26: zone 3's cover-plate cycle is part of 施工順序
   const shared=`<section class="block">${sec('斷面','鋪面分層',`${same}依厚度比例由下往上疊出各層；${G.touch?'點':'滑鼠移到'}任一層看說明。${G.stacked()?'下方':'右邊'}是影片裡的分層模型。`)}
       <div class="sec-grid"><div class="sec-card rv"><svg></svg></div><figure class="model rv" data-d="150"><img src="${A.layers[z0]}" alt="${Z0.name}分層模型"><figcaption>影片中的分層模型（浮起示意）</figcaption></figure></div>
       ${Z0.note?`<p class="note">${Z0.note}</p>`:''}</section>
+    ${z0===3&&A.wz3seq?`<section class="block">${sec(S.wz3seq.kick,S.wz3seq.title,S.wz3seq.lead)}<div class="seq-host rv"></div></section>`:''}
     ${V?`<section class="block" data-z="${z0}">${sec(V.kick,V.title,same+((G.touch&&V.leadTouch)||V.lead))}<div class="sv-host rv"></div>${V.quote?`<p class="note">${V.quote}</p>`:''}</section>`:''}`;
   const root=page('zone',`${head(route,'<svg class="zone-strip"></svg>')}${parts.map(hero).join('')}${shared}${G.pager(route)}${G.footer()}`);
   root.style.setProperty('--zc',G.COL[parts[0]]);
@@ -110,9 +112,11 @@ G.pages.zone=function(n){
   const secv=G.Section($('.sec-card svg',root),S.zones[parts[0]].section,{total:S.zones[parts[0]].total});
   const svs=parts.map(z=>{const host=$(`section[data-z="${z}"] .sv-host`,root);if(!host)return null;
     return z===3?wz3Viewer(host):z===4?wz4Viewer(host):z===1&&A.wz1?pccViewer(host,A.wz1):z===2&&A.wz2?pccViewer(host,A.wz2):null});
+  // 工區三 施工順序 (2026-10-25, user:「在工區三的鋪面分層下面做一區域是施工順序」): work/wz3_sequence_20261025
+  const seqHost=$('.seq-host',root),seq=seqHost?G.SeqPlayer(seqHost,A.wz3seq,{rate:S.wz3seq.rate,fast:S.wz3seq.fast,spots:S.wz3seq.spots,notes:S.wz3.notes,join:S.wz3seq.join,hold:S.wz3seq.hold}):null;
   return {el:root,
     enter(){showT();strip.play();G.onView($('.sec-card',root),()=>secv.play(),.35)},
-    destroy(){players.forEach(p=>p.destroy());svs.forEach(v=>v&&v.destroy())}};
+    destroy(){players.forEach(p=>p.destroy());svs.forEach(v=>v&&v.destroy());if(seq)seq.destroy()}};
 };
 
 /* ================= 施工階段 ================= */

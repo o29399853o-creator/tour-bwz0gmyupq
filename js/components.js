@@ -98,6 +98,75 @@ G.HeroVideo=function(root,src,frames,fps,hold,badge){
 /* a loop from the asset data: its MP4 when there is one, otherwise the frames */
 G.Loop=(root,m,badge)=>m.mp4?G.HeroVideo(root,m.mp4,m.frames,m.fps,null,badge):G.FramePlayer(root,m.frames,m.fps,badge);
 
+/* ---------- construction order (工區三 施工順序, 2026-10-25): one MP4 with a line of stops (G.Rail) for its steps underneath; the
+   current step lights up and its caption sits on the picture.
+   2026-10-26 (user:「整體都再加速1.3倍，然後跟一步一步游標點了之後再播放」): played at opt.rate and one step at a time - a click on
+   the picture plays the next step, a click on a stop plays that step, each step stops on its last frame. Nothing plays before the
+   first click; the MP4 is fetched once the block comes into view.
+   2026-10-27 (user, a picture of the 覆工板施工循環 tag:「我要你標住的是這樣子」): opt.spots {step key: [[label, x, y]]} puts the
+   State viewer's labels (dot, leader, tag; opt.notes behind ⓘ) on that step's stopped picture.
+   2026-10-27 (user:「678合併 9 10 11合併」): the steps (segments) in opt.join run on from the one before without a stop of their own,
+   each with its own caption and speed; opt.hold {key: s} pauses that long on a segment's last frame with its labels, then plays on. ---------- */
+G.SeqPlayer=function(root,m,opt){
+  opt=opt||{};const SG=m.steps,rate=opt.rate||1,fast=opt.fast,join=opt.join||[],hold=opt.hold||{};
+  const ST=SG.filter(s=>join.indexOf(s.key)<0),n=ST.length;        // the stops
+  const after=(L,t)=>{let k=0;L.forEach((s,j)=>{if(s.t<=t+1e-6)k=j});return k};
+  const segAt=t=>after(SG,t),stopOf=SG.map(s=>after(ST,s.t));
+  const rateOf=j=>rate*(fast&&fast.keys.indexOf(SG[j].key)>=0?fast.x:1);   // 10/27 user:「第1-9及11-12、15速度快兩倍」
+  root.innerHTML=`<div class="player seq-stage"><video muted playsinline preload="none"></video><div class="hotlayer"></div>
+    <div class="badge"><i></i>模型畫面</div><div class="seq-next"></div><div class="seq-cap"><b></b><span></span></div><div class="fp-load"><i></i></div></div>
+    <div class="seq-rail"></div>`;
+  const v=$('video',root),stage=$('.seq-stage',root),cap=$('.seq-cap',root),pb=$('.fp-load',root),nx=$('.seq-next',root),hot=$('.hotlayer',root);
+  // (10/27 user:「覆工板規格字卡太慢顯示了」: leader and tag drawn in quicker than in the State viewer)
+  let labKey=null;
+  function labels(key){hot.innerHTML='';labKey=null;const sp=key&&(opt.spots||{})[key];if(!sp)return;labKey=key;const W=stage.clientWidth,H=stage.clientHeight;
+    sp.forEach(([txt,x,y],k)=>{const o=opt.offset||[90,-120],dx=o[0]/1920*W,dy=o[1]/1080*H,note=(opt.notes||{})[txt];
+      const e=h('div','lab',`<svg width="1" height="1"><line x1="0" y1="0" x2="${dx}" y2="${dy}" stroke="#ffcc00" stroke-width="2.5" stroke-dasharray="400" stroke-dashoffset="400" style="animation:dash .25s ${k*.1}s forwards"/><circle r="5" fill="#ffcc00"/></svg>`+
+        `<span class="${note?'more':''}" style="left:${dx}px;top:${dy-16}px;animation-delay:${k*.1+.1}s"><b>${txt}</b>${note?`<em>${note}</em>`:''}</span>`,hot);
+      e.style.left=(x*100)+'%';e.style.top=(y*100)+'%';const s=$('span',e);if(note)s.onclick=ev=>{ev.stopPropagation();s.classList.toggle('open')}
+      const over=x*W+dx+s.offsetWidth-(W-4);if(over>0){s.style.left=(dx-over)+'px';$('line',e).setAttribute('x2',dx-over)}})}   // phones: keep the tag inside
+  v.muted=true;v.defaultMuted=true;v.setAttribute('muted','');v.poster=m.poster;
+  let alive=true,cur=-1,endT=0,raf=0,last=-1,seg=-1,held={},holdT=0,holdJ=-1;
+  const endOf=i=>i<n-1?ST[i+1].t:(m.duration||v.duration||1e9);
+  const say=t=>{nx.textContent=t;nx.classList.toggle('on',!!t)};
+  const hint=()=>say(!v.paused?'':cur<0?'點畫面開始播放 ▶':cur>=n-1?'播完了，點畫面從頭看 ↺':`點畫面播下一步：${ST[cur+1].short} ▶`);
+  const rail=G.Rail($('.seq-rail',root),ST.map(s=>({label:s.short})),i=>playStep(i));
+  function show(j){if(j===last)return;last=j;$('b',cap).textContent=SG[j].title;$('span',cap).textContent=SG[j].sub||'';rail.set(stopOf[j])}
+  function stopAt(t,j){v.pause();cancelAnimationFrame(raf);try{v.currentTime=Math.max(SG[j].t,t)}catch(e){};labels(SG[j].key)}
+  // per screen refresh while playing: the segment's caption and speed, a hold, the stop on the step's last frame.
+  // 10/27 user:「3.4.6.7.，最後一針都會閃現其他車輛」: the next step's machine is there from its first frame, and a check per screen
+  // refresh let the picture run a frame or two into it before the pause took hold -> stop a little early (more at 2x) and step
+  // forward to the last frame (a hold the same way)
+  function tick(){if(cur<0||v.paused)return false;const t=v.currentTime,lead=Math.max(.1,v.playbackRate*.06);
+    const hAt=k=>SG[k].t+hold[SG[k].key][0];
+    const hj=SG.findIndex((s,k)=>hold[s.key]&&!held[k]&&hAt(k)>ST[cur].t&&hAt(k)<endT-.01&&t>=hAt(k)-lead);
+    if(hj>=0){held[hj]=1;seg=hj;show(hj);stopAt(hAt(hj),hj);holdJ=hj;  // (also when a slow check ran past it)
+      holdT=setTimeout(()=>{holdT=0;if(alive&&v.paused&&holdJ>=0)run()},hold[SG[hj].key][1]*1000);return true}
+    if(t>=endT-.06-lead){const je=segAt(endT-.07);seg=je;show(je);stopAt(endT-.06,je);hint();return true}   // (before the next step's caption)
+    const j=segAt(t);if(j!==seg){seg=j;show(j);v.playbackRate=rateOf(j);if(labKey&&labKey!==SG[j].key)labels(null)}
+    return false}
+  function watch(){cancelAnimationFrame(raf);if(!alive||tick()||v.paused)return;raf=requestAnimationFrame(watch)}
+  v.addEventListener('timeupdate',tick);                           // backup: rAF does not run in background tabs
+  // the end of a hold (its time up or a click): with a third value the rest of that segment is a still picture - go on from its end
+  // (10/27 user:「單片覆工鈑浮起來後顯示太久了」)
+  function release(){const k=holdJ;holdJ=-1;clearTimeout(holdT);holdT=0;if(k>=0&&hold[SG[k].key][2])try{v.currentTime=SG[k+1].t-.04}catch(e){}}
+  const run=()=>{say('');release();v.playbackRate=rateOf(segAt(v.currentTime));v.play().then(()=>{hint();watch()}).catch(()=>{})};
+  function playStep(i){if(!alive)return;labels(null);holdJ=-1;clearTimeout(holdT);holdT=0;cur=(i+n)%n;endT=endOf(cur);held={};seg=SG.indexOf(ST[cur]);show(seg);
+    if(!v.src){v.preload='auto';v.src=m.mp4}
+    v.defaultPlaybackRate=rateOf(seg);const go=()=>{try{v.currentTime=ST[cur].t+.02}catch(e){};run()};
+    if(v.readyState>=1)go();else v.addEventListener('loadedmetadata',go,{once:true})}
+  show(0);hint();
+  stage.addEventListener('click',()=>{
+    if(!v.paused){v.pause();cancelAnimationFrame(raf);say('已暫停，點畫面繼續 ▶');return}
+    if(cur>=0&&v.currentTime<endT-.1){run();return}               // resume a step paused half way (or held: go on now)
+    playStep(cur<0||cur>=n-1?0:cur+1)});
+  v.addEventListener('ended',()=>{cancelAnimationFrame(raf);hint()});
+  v.addEventListener('progress',()=>{try{const b=v.buffered;if(b.length&&v.duration){const p=b.end(b.length-1)/v.duration;$('i',pb).style.width=(p*100)+'%';if(p>.99)pb.classList.add('done')}}catch(e){}});
+  v.addEventListener('canplaythrough',()=>{$('i',pb).style.width='100%';pb.classList.add('done')});
+  G.onView(stage,()=>{if(alive&&!v.src){v.preload='auto';v.src=m.mp4}},.1);
+  return {destroy(){alive=false;cancelAnimationFrame(raf);clearTimeout(holdT);v.pause();rail.destroy();v.removeAttribute('src');v.load()}};
+};
+
 /* ---------- cross-section: layers drop in with overshoot, dimension lines draw, thickness counts up; hover a layer for its role ---------- */
 G.Section=function(svg,layers,opt){
   opt=opt||{};let run=0;const M=(window.SITE.materials)||{};

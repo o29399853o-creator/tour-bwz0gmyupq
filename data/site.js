@@ -42,6 +42,12 @@ window.SITE={
     states:[{short:'開挖',cap:0},{short:'碎石級配',cap:1},{short:'水泥處理級配',cap:2},{short:'覆工板鋪設',cap:3},
       {short:'覆工板規格',title:'覆工板規格',cap:4},{short:'暫時開放',titleCap:4,cap:5}],   // user 2026-10-10: 5 = plate spec, 6 = temporary opening
     notes:{'鋼製覆工板　3 m × 1.5 m × 15 cm':'此段 70 片（5 排 × 14 列），由上往下逐片鋪設。'}},
+  /* zone 3 construction order (user 2026-10-25): work/wz3_sequence_20261025, steps in ASSETS.wz3seq */
+  wz3seq:{kick:'施工順序',title:'由北往南，每段 21 m',rate:1.3,   // 2026-10-26 user:「整體都再加速1.3倍」
+    fast:{x:2,keys:['intro','B','E','R1','G','K','R2','C','R3','PS','OP','AS']},   // 2026-10-27 user:「第1-9及11-12、15速度快兩倍」(覆工板、第 2～4 段、拿開覆工板 stay)
+    spots:{PS:[['鋼製覆工板　3 m × 1.5 m × 15 cm',.5,.46]]},   // 2026-10-27 user (a picture of wz3's tag):「我要你標住的是這樣子」- on the stopped 覆工板規格 picture, note from wz3.notes; the dot = the lifted plate's top centre (wz3_seq.py 'SPEC anchor')
+    join:['E','PS','OP','RM','AS'],hold:{PS:[1,1.5,1]},   // 2026-10-27 user:「678合併 9 10 11合併」「23合併」(破碎道肩＋開挖)- 覆工板＋覆工板規格＋暫時開放, 第 2～4 段＋拿開覆工板＋鋪瀝青 one stop each (own captions and speeds); hold {key: [s after the segment starts, s, 1 = then on from the segment's end]}: 1 s into 覆工板規格 the plate is up and the camera there - the tag holds 1.5 s, then 暫時開放 (the rest of 覆工板規格 is the same still picture; 「覆工板規格字卡太慢顯示了」「單片覆工鈑浮起來後顯示太久了」)
+    lead:'既有道肩 7.5 m 加草地 7.5 m，擴建為 15 m。東側 STA 0K+707～0K+791 共 84 m 分四段由北往南施工：第 1 段逐步示範，從破碎既有道肩、開挖到鋪好覆工板，之後跑道照常開放；第 2～4 段同樣步驟快速帶過，四段都完成後拿開覆工板，鋪設瀝青混凝土。'},
   /* zones 1 and 2: S03c / S04c (user 2026-10-12, 「工區二也一併做」) — a block pulled out of the PCC pavement: texture, joints, sealing (F-24) */
   pcc:{kick:'施工',title:'從掃紋到填縫',lead:'從道面拉出一塊來看。點下方的施工步驟、點畫面或按 → ，看下一個步驟。',
     leadTouch:'從道面拉出一塊來看。點下方的施工步驟、點畫面或左右滑動，看下一個步驟。',
@@ -157,7 +163,7 @@ window.SITE={
       ['2026-10-10','影片 v6 完成並驗收合格','4427 格、約 3 分 4 秒；網站全站完成']],
     tools:[['Blender 5.1','模型、算圖、影片輸出（背景執行）'],['Python／Pillow','影格合成、字幕、標註、網站素材'],['HTML／CSS／JavaScript','網站本身，不用外部套件，可離線開啟'],['Claude、Codex','撰寫與檢查腳本、網站程式；所有輸出由承辦人驗收']],
     sources:[['模型說明','模型為示意，位置依設計展示配準，非測量成果。'],
-      
+      ['施工機具模型','"Excavator (CAT)" by sarvesh12, CC BY 4.0；"Road roller truck" by Sidra, CC BY 4.0；"HINO+dump+truck+3d+model" by 3DMODEL, CC BY 4.0（皆 Sketchfab；工區三施工順序用，挖土機破碎頭為自製）'],   // 2026-10-27 before going online
       ['飛機模型','"Boeing 747-100" by Marine, CC BY 4.0；"Boeing-787- Dreamliner" by themaker845, CC BY 4.0'],
       ['版本','網站 2026-10-10 全站版；導覽影片 v6']]}
 };
