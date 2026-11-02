@@ -60,8 +60,8 @@ async function go(){
 /* B (2026-10-10): fetch the first pictures of the next stop at low priority, so the next page starts without waiting */
 const warm=new Set();
 function prefetch(i){const st=S.stops[i],A=window.ASSETS;if(!st||!A||warm.has(i))return;warm.add(i);let L=[];
-  if(st.zone){const H=A.hero[st.zone];if(H.mp4){L=[H.frames[0]];if(!G.narrow())fetch(H.mp4,{priority:'low'}).catch(()=>{})}   // the zone video itself (not on phones: data)
-    else L=H.frames.filter((_,k)=>!G.narrow()||k%2===0).slice(0,24)}
+  // 2026-10-29 (user:「把左上的動畫移除節省網站讀取時間」, all zones): the zone pages have no model loop - their first picture is the layered model
+  if(st.zone)L=[A.layers&&A.layers[st.zone],st.zone===3&&A.wz3seq&&A.wz3seq.poster].filter(Boolean);
   else if(st.route==='#/phase')L=[...new Set(S.phase.slice(0,2).flatMap(p=>p.img))].map(k=>A.phase[k].img);
   else if(st.route==='#/control')L=[A.control.barrier,A.control.taxiway].flatMap(m=>m.mp4?[m.frames[0]]:m.frames.slice(0,8));
   else if(st.route==='#/aids')L=[A.aids.circuits.r1,A.aids.circuits.r3,A.aids.circuits.all1];

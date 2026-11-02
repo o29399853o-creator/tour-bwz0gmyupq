@@ -44,10 +44,77 @@ window.SITE={
     notes:{'鋼製覆工板　3 m × 1.5 m × 15 cm':'此段 70 片（5 排 × 14 列），由上往下逐片鋪設。'}},
   /* zone 3 construction order (user 2026-10-25): work/wz3_sequence_20261025, steps in ASSETS.wz3seq */
   wz3seq:{kick:'施工順序',title:'由北往南，每段 21 m',rate:1.3,   // 2026-10-26 user:「整體都再加速1.3倍」
-    fast:{x:2,keys:['intro','B','E','R1','G','K','R2','C','R3','PS','OP','AS']},   // 2026-10-27 user:「第1-9及11-12、15速度快兩倍」(覆工板、第 2～4 段、拿開覆工板 stay)
+    fast:{x:2,keys:['intro','B','E','R1','G','K','R2','C','R3','PS','OP','AS','SP1','AS1','SP2','AS2','SP3','AS3','L23']},   // 2026-10-27 user:「第1-9及11-12、15速度快兩倍」(覆工板、第 2～4 段、拿開覆工板 stay)
     spots:{PS:[['鋼製覆工板　3 m × 1.5 m × 15 cm',.5,.46]]},   // 2026-10-27 user (a picture of wz3's tag):「我要你標住的是這樣子」- on the stopped 覆工板規格 picture, note from wz3.notes; the dot = the lifted plate's top centre (wz3_seq.py 'SPEC anchor')
-    join:['E','PS','OP','RM','AS'],hold:{PS:[1,1.5,1]},   // 2026-10-27 user:「678合併 9 10 11合併」「23合併」(破碎道肩＋開挖)- 覆工板＋覆工板規格＋暫時開放, 第 2～4 段＋拿開覆工板＋鋪瀝青 one stop each (own captions and speeds); hold {key: [s after the segment starts, s, 1 = then on from the segment's end]}: 1 s into 覆工板規格 the plate is up and the camera there - the tag holds 1.5 s, then 暫時開放 (the rest of 覆工板規格 is the same still picture; 「覆工板規格字卡太慢顯示了」「單片覆工鈑浮起來後顯示太久了」)
+    join:['E','PS','OP','RM','AS','SP1','AS1','SP2','AS2','SP3','AS3','L23'],   // 2026-10-28 r17: the asphalt as 噴油／鋪第一～三層 segments, joined and fast as AS was; 10-29 r19: layers 2 + 3 one step L23 (r17 keys kept until the r19 video is in)
+   hold:{PS:[1,1.5,1]},   // 2026-10-27 user:「678合併 9 10 11合併」「23合併」(破碎道肩＋開挖)- 覆工板＋覆工板規格＋暫時開放, 第 2～4 段＋拿開覆工板＋鋪瀝青 one stop each (own captions and speeds); hold {key: [s after the segment starts, s, 1 = then on from the segment's end]}: 1 s into 覆工板規格 the plate is up and the camera there - the tag holds 1.5 s, then 暫時開放 (the rest of 覆工板規格 is the same still picture; 「覆工板規格字卡太慢顯示了」「單片覆工鈑浮起來後顯示太久了」)
     lead:'既有道肩 7.5 m 加草地 7.5 m，擴建為 15 m。東側 STA 0K+707～0K+791 共 84 m 分四段由北往南施工：第 1 段逐步示範，從破碎既有道肩、開挖到鋪好覆工板，之後跑道照常開放；第 2～4 段同樣步驟快速帶過，四段都完成後拿開覆工板，鋪設瀝青混凝土。'},
+  /* zone 3 施工查驗重點 (user 2026-10-28:「在第三站裡面施工順序後面加一個區塊是施工查驗重點」「我想像工區一二的那個詳圖那樣」): the State
+     viewer over pictures of the model, one state per layer. TEMPORARY until the user's content and the pulled-out detail renders: the
+     pictures are 施工順序 frames (0529 / 0913 / 1164 / r16 2015), the items and standard values those of 監造查驗 (assets/insp/items.js) */
+  wz3insp:{kick:'查驗',title:'施工查驗重點',lead:'依層次查驗。點大標籤切換層次、小標籤切換查驗項目；點畫面或按 → ，看下一項。',
+    leadTouch:'依層次查驗。點大標籤切換層次、小標籤切換查驗項目；點畫面或左右滑動，看下一項。',
+    quote:'標準值依細部設計成果附冊（施工規範）V3.2 與細部設計圖說 V3.2；點字卡的 ⓘ 看出處。（洩水坡度、壓實度、平整度、厚度、黏油灑佈量為模型示意；瀝青層的鑽心、溫度、接縫畫面暫用施工順序影片，待補）',
+    // user 2026-10-28: items「洩水坡度 工地密度(壓實度) 平整度」「瀝青的平整度、瀝青黏油灑鋪量、瀝青鑽心厚度」「厚度、接縫錯開、瀝青溫度」, values from the
+    // spec / drawing F-03 (「詳細請去查細部設計」;「寫1.0%」「改0.18~0.32」; 路基 95% the user's value, 02336 has none); then「改用頁籤方式切換，分路基土壤層、
+    // 碎石級配層、水泥級配層、改質瀝青混凝土層」: tabs, each its own states and notes
+    tabs:[
+     {k:'soil',n:'路基土壤層',sub:'開挖深度 60 cm',c:'#8a6a4a',
+      states:[{short:'洩水坡度',title:'洩水坡度',sub:'開挖面依設計圖的橫坡整形滾壓，由跑道中心往外側 1.0% 洩水（模型取一段斷面浮起、垂直放大 5 倍，拆開各層）',clip:{mp4:'assets/wz3insp/c/slope_soil.mp4',a:'assets/wz3insp/c/slope_soil_a.jpg',z:'assets/wz3insp/c/slope_soil_z.jpg'},thumb:'assets/wz3insp/c/slope_soil_t.jpg',spots:[['1.0%',0.5154,0.4185],['外側低 15 cm',0.1333,0.4522]]},
+        {short:'壓實度',title:'壓實度（工地密度）',sub:'整平滾壓後，在面上左下、中間、右上各取一點，以砂錐法做工地密度試驗（挖試坑、倒砂量體積，換算密度與壓實度）',clip:{mp4:'assets/wz3insp/c/dens.mp4',a:'assets/wz3insp/c/dens_a.jpg',z:'assets/wz3insp/c/dens_z.jpg'},thumb:'assets/wz3insp/c/dens_t.jpg',spots:[['壓實度 ≥ 95%',.5,.40]]},
+        // 2026-10-29 user:「平整度、壓實度、厚度是各層都有」- the subgrade's two added (the spec book 附冊 V3.2 has no 02336 text; ±3 cm the user's value);
+        // 平整度 of every layer: details/flat.py r5 (「直接切成俯視並截圖三個量尺的特寫尺寸放旁邊」), readings inside the wedge's scale (「就只是示意」)
+        {short:'平整度',title:'平整度',sub:'整形滾壓後以 3 m 直規量測開挖面，三角尺平平插入尺下，卡住的刻度就是該點高低差（示意讀數 +8、+15、−10 mm）',clip:{mp4:'assets/wz3insp/c/flat_soil.mp4',a:'assets/wz3insp/c/flat_soil_a.jpg',z:'assets/wz3insp/c/flat_soil_z.jpg'},thumb:'assets/wz3insp/c/flat_soil_t.jpg',spots:[['高低差 ±3 cm',0.3016,0.2959]]},
+        // 2026-10-29 user:「厚度的部分，幫我架經緯儀(含腳架)…箱尺分別放在四個地方…」then「改用半透明的面，掃到經緯儀及各箱尺」: details/thick.py
+        // (then「合格，碎石、水泥級配也這麼做」: thick_agg / thick_ctb on the other two tabs)
+        {short:'厚度',title:'開挖深度',sub:'經緯儀架在既有道面上，同一樁號線放四支箱尺，以視準水平面讀數：既有道面 150 cm；開挖面靠道面側 210 cm（高差 60 cm）、中間 217.5 cm（67.5 cm）、靠草地側 225 cm（75 cm，含 1.0% 洩水）',clip:{mp4:'assets/wz3insp/c/thick.mp4',a:'assets/wz3insp/c/thick_a.jpg',z:'assets/wz3insp/c/thick_z.jpg'},thumb:'assets/wz3insp/c/thick_t.jpg',spots:[]}],
+      notes:{'高低差 ±3 cm':'以 3 m 直規量測，高低差 ±3 cm 以內','開挖深度 60 cm':'瀝青混凝土 15 cm＋水泥處理級配 15 cm＋碎石級配 30 cm＝60 cm','外側低 15 cm':'由跑道側往外 15 m 寬、橫坡 1.0%，外側低 15 cm；模型垂直放大 5 倍示意','1.0%':'路基整形並滾壓，使其符合設計圖說所示之線形、坡度及橫斷面（細部設計成果附冊（施工規範）V3.2 第02716章 3.1.3）；設計橫坡 1.0%，由跑道中心線往外側洩水（細部設計圖說 F-03 標準橫斷面圖(三)）','壓實度 ≥ 95%':'原土層（開挖面）整平滾壓後做工地密度試驗，壓實度 ≥ 最大乾密度 95%'}},
+     {k:'agg',n:'碎石級配層',sub:'厚度 30 cm',c:'#7a6650',
+      states:[{short:'洩水坡度',title:'洩水坡度',sub:'依設計圖的坡度、高程及橫斷面鋪築，往外側 1.0% 洩水（模型取一段斷面浮起、垂直放大 5 倍，拆開各層）',clip:{mp4:'assets/wz3insp/c/slope_agg.mp4',a:'assets/wz3insp/c/slope_agg_a.jpg',z:'assets/wz3insp/c/slope_agg_z.jpg'},thumb:'assets/wz3insp/c/slope_agg_t.jpg',spots:[['1.0%',0.5154,0.4185],['外側低 15 cm',0.1333,0.4522]]},
+        {short:'壓實度',title:'壓實度（工地密度）',sub:'每層滾壓後，在面上左下、中間、右上各取一點，以砂錐法做工地密度試驗（挖試坑、倒砂量體積，換算密度與壓實度）',clip:{mp4:'assets/wz3insp/c/dens_agg.mp4',a:'assets/wz3insp/c/dens_agg_a.jpg',z:'assets/wz3insp/c/dens_agg_z.jpg'},thumb:'assets/wz3insp/c/dens_agg_t.jpg',spots:[['壓實度 ≥ 95%',.5,.40]]},
+        {short:'平整度',title:'平整度',sub:'以 3 m 長直規量測頂面，三角尺平平插入尺下，卡住的刻度就是該點高低差（示意讀數 +6、+12、−9 mm）',clip:{mp4:'assets/wz3insp/c/flat_agg.mp4',a:'assets/wz3insp/c/flat_agg_a.jpg',z:'assets/wz3insp/c/flat_agg_z.jpg'},thumb:'assets/wz3insp/c/flat_agg_t.jpg',spots:[['高低差 ±2.5 cm',0.3016,0.2959]]},
+        {short:'厚度',title:'厚度',sub:'經緯儀架在既有道面上，同一樁號線四支箱尺：碎石級配頂面讀數 180／187.5／195 cm（高差 30／37.5／45 cm，含 1.0% 洩水），與路基頂面讀數 210／217.5／225 cm 相減，厚度 30 cm',clip:{mp4:'assets/wz3insp/c/thick_agg.mp4',a:'assets/wz3insp/c/thick_agg_a.jpg',z:'assets/wz3insp/c/thick_agg_z.jpg'},thumb:'assets/wz3insp/c/thick_agg_t.jpg',spots:[['30 cm（任一點少 2 cm 內）',.2878,.5446]]}],
+      notes:{'外側低 15 cm':'由跑道側往外 15 m 寬、橫坡 1.0%，外側低 15 cm；模型垂直放大 5 倍示意','1.0%':'級配粒料基層依設計圖說所示之線形、坡度、高程及橫斷面鋪築（細部設計成果附冊（施工規範）V3.2 第02722章 1.5.1）；設計橫坡 1.0%，由跑道中心線往外側洩水（細部設計圖說 F-03 標準橫斷面圖(三)）','壓實度 ≥ 95%':'每一層至少每 1,000 m² 做一次工地密度試驗；壓實度 ≥ 最大乾密度 95%（細部設計成果附冊（施工規範）V3.2 第02722章 3.2.2、3.2.3）','高低差 ±2.5 cm':'以 3 m 長直規平行或垂直道路中心線檢測，任何一點高低差不得超過 ±2.5 cm（細部設計成果附冊（施工規範）V3.2 第02722章 3.3.1）','30 cm（任一點少 2 cm 內）':'每 1,000 m² 檢測一次；任何一點不得比設計厚度少 2 cm 以上，各點平均不得小於設計厚度（細部設計成果附冊（施工規範）V3.2 第02722章 3.3.2）'}},
+     {k:'ctb',n:'水泥處理級配層',sub:'厚度 15 cm',c:'#a8987a',
+      states:[{short:'洩水坡度',title:'洩水坡度',sub:'表面整形滾壓須符合設計圖的路拱、坡度及線形，往外側 1.0% 洩水（模型取一段斷面浮起、垂直放大 5 倍，拆開各層）',clip:{mp4:'assets/wz3insp/c/slope_ctb.mp4',a:'assets/wz3insp/c/slope_ctb_a.jpg',z:'assets/wz3insp/c/slope_ctb_z.jpg'},thumb:'assets/wz3insp/c/slope_ctb_t.jpg',spots:[['1.0%',0.5153,0.4522],['外側低 15 cm',0.1354,0.4856]]},
+        {short:'壓實度',title:'壓實度（工地密度）',sub:'滾壓後，在面上左下、中間、右上各取一點，以砂錐法做工地密度試驗（挖試坑、倒砂量體積，換算密度與壓實度）',clip:{mp4:'assets/wz3insp/c/dens_ctb.mp4',a:'assets/wz3insp/c/dens_ctb_a.jpg',z:'assets/wz3insp/c/dens_ctb_z.jpg'},thumb:'assets/wz3insp/c/dens_ctb_t.jpg',spots:[['壓實度平均 ≥ 98%',.5,.40]]},
+        {short:'平整度',title:'平整度',sub:'以 3 m 長直規量測表面，三角尺平平插入尺下，卡住的刻度就是該點高低差（示意讀數 +3、+6、−4 mm：單點都在 ±6 mm 內，最高與最低相差 10 mm）',clip:{mp4:'assets/wz3insp/c/flat_ctb.mp4',a:'assets/wz3insp/c/flat_ctb_a.jpg',z:'assets/wz3insp/c/flat_ctb_z.jpg'},thumb:'assets/wz3insp/c/flat_ctb_t.jpg',spots:[['單點 ±6 mm，高度差 ≤ 1 cm',0.3016,0.2959]]},
+        {short:'厚度',title:'厚度',sub:'經緯儀架在既有道面上，同一樁號線四支箱尺：水泥處理級配頂面讀數 165／172.5／180 cm（高差 15／22.5／30 cm，含 1.0% 洩水），與碎石級配頂面讀數 180／187.5／195 cm 相減，厚度 15 cm',clip:{mp4:'assets/wz3insp/c/thick_ctb.mp4',a:'assets/wz3insp/c/thick_ctb_a.jpg',z:'assets/wz3insp/c/thick_ctb_z.jpg'},thumb:'assets/wz3insp/c/thick_ctb_t.jpg',spots:[['15 cm（不足 ≤ 12 mm）',.2881,.5531]]}],
+      notes:{'外側低 15 cm':'由跑道側往外 15 m 寬、橫坡 1.0%，外側低 15 cm；模型垂直放大 5 倍示意','1.0%':'表面整形及滾壓，務須符合設計圖說所示路拱、坡度及線形之規定（細部設計成果附冊（施工規範）V3.2 第02716章 3.5.1）；設計橫坡 1.0%，由跑道中心線往外側洩水（細部設計圖說 F-03 標準橫斷面圖(三)）','壓實度平均 ≥ 98%':'工地密度試驗每 2,500 m² 一組；壓實度平均值 ≥ 試驗室最大乾密度 98%（細部設計成果附冊（施工規範）V3.2 第02716章 3.10.1）','單點 ±6 mm，高度差 ≤ 1 cm':'單點高低差 ±6 mm 以內；以 3 m 長直規沿平行路中心線或以樣板沿斷面檢視，高度差不得超過 1 cm（細部設計成果附冊（施工規範）V3.2 第02716章 3.7）','15 cm（不足 ≤ 12 mm）':'AC 擴建區厚度 15 cm，不得不足 12 mm，隨機取樣範圍 7.5 m × 7.5 m（細部設計成果附冊（施工規範）V3.2 第02716章 3.9.1）'}},
+     {k:'ac',n:'改質瀝青混凝土層',sub:'厚度 15 cm',c:'#5d646c',
+      states:[{short:'洩水坡度',title:'洩水坡度',sub:'依設定的路線、高程及橫斷坡度鋪築，往外側 1.0% 洩水（模型取一段斷面浮起、垂直放大 5 倍，拆開各層）',clip:{mp4:'assets/wz3insp/c/slope_ac.mp4',a:'assets/wz3insp/c/slope_ac_a.jpg',z:'assets/wz3insp/c/slope_ac_z.jpg'},thumb:'assets/wz3insp/c/slope_ac_t.jpg',spots:[['1.0%',0.5153,0.4522],['外側低 15 cm',0.1354,0.4856]]},
+        {short:'壓實度',title:'壓實度（鑽心密度）',sub:'鋪築完成後鑽取試體求密度',src:'assets/wz3insp/s5.jpg',thumb:'assets/wz3insp/t5.jpg',spots:[['鑽心密度 ≥ 95%',.55,.70]]},
+        {short:'平整度',title:'平整度',sub:'以 3 m 長直尺架在路面上，三角尺平平插入尺下，卡住的刻度就是該點高低差（示意讀數 +3、+5、0 mm，最高與最低相差 5 mm）',clip:{mp4:'assets/wz3insp/c/flat.mp4',a:'assets/wz3insp/c/flat_a.jpg',z:'assets/wz3insp/c/flat_z.jpg'},thumb:'assets/wz3insp/c/flat_t.jpg',spots:[['高低差 ≤ 5 mm',0.3016,0.2959]]},
+        {short:'厚度',title:'鑽心厚度',sub:'鋪築完成後鑽心取樣量厚度',src:'assets/wz3insp/s5.jpg',thumb:'assets/wz3insp/t5.jpg',spots:[['鑽心厚度 ≥ 設計 95%',.55,.70]]},
+        {short:'黏油灑佈量',title:'黏油灑佈量',sub:'在路面鋪一張淺黃色試紙（0.74 m × 0.74 m），噴油車噴過後秤重，扣掉試紙重量再以密度換算每平方公尺幾公升',clip:{mp4:'assets/wz3insp/c/tack.mp4',a:'assets/wz3insp/c/tack_a.jpg',z:'assets/wz3insp/c/tack_z.jpg'},thumb:'assets/wz3insp/c/tack_t.jpg',spots:[['0.18～0.32 L/m²',.6106,.5702],['試紙 0.74 m × 0.74 m',.565,.585]]},
+        {short:'瀝青溫度',title:'瀝青溫度',sub:'量測混合料出廠溫度，以及鋪築後各階段的滾壓溫度',src:'assets/wz3insp/s6.jpg',thumb:'assets/wz3insp/t6.jpg',spots:[['出廠 150～177 ℃',.62,.40],['次壓 130～165 ℃',.30,.72],['終壓 ≥ 90 ℃',.16,.86]]},
+        {short:'接縫錯開',title:'接縫錯開',sub:'分層鋪築時，上下各層的縱、橫接縫不得在同一垂直面上',src:'assets/wz3insp/s7.jpg',thumb:'assets/wz3insp/t7.jpg',spots:[['縱向接縫錯開 ≥ 15 cm',.50,.72],['橫向接縫錯開 ≥ 60 cm',.70,.86]]}],
+      notes:{'外側低 15 cm':'由跑道側往外 15 m 寬、橫坡 1.0%，外側低 15 cm；模型垂直放大 5 倍示意','1.0%':'以自動式鋪築機依設定之路線、高程及橫斷坡度鋪築（細部設計成果附冊（施工規範）V3.2 第02796章 3.5(1)）；設計橫坡 1.0%，由跑道中心線往外側洩水（細部設計圖說 F-03 標準橫斷面圖(三)）','鑽心密度 ≥ 95%':'每 1,000 m² 鑽取 1 個試體，每個試體密度 ≥ 室內平均密度 95%（細部設計成果附冊（施工規範）V3.2 第02796章 3.7.6）','高低差 ≤ 5 mm':'以 3 m 長直尺量測，高低差不得大於 5 mm（細部設計成果附冊（施工規範）V3.2 第02796章 3.7.7 依第02751章 3.17.1）','鑽心厚度 ≥ 設計 95%':'每 1,000 m² 鑽取一件，依 CNS 8755 檢測厚度，不得少於設計厚度 95%（細部設計成果附冊（施工規範）V3.2 第02796章 3.7.8）','試紙 0.74 m × 0.74 m':'灑佈量 (L/m²) ＝（噴後重 － 噴前重）÷ 黏層油密度 ÷ 0.5476 m²',
+      '0.18～0.32 L/m²':'改質乳化瀝青 CRS-1P 密級配瀝青鋪面建議澆置量：平坦新瀝青鋪面 0.18、平坦舊瀝青鋪面及水泥鋪面 0.23、刨除面及不平整瀝青鋪面 0.32 L/m²（細部設計成果附冊（施工規範）V3.2 第02747章 3.2.3）','出廠 150～177 ℃':'密級配改質瀝青混凝土混合料自拌合廠輸出時之溫度，不得低於 150 ℃ 或高於 177 ℃（細部設計成果附冊（施工規範）V3.2 第02796章，PDF p.227）','次壓 130～165 ℃':'次壓溫度一般約 130～165 ℃（細部設計成果附冊（施工規範）V3.2 第02796章 3.6.2）','終壓 ≥ 90 ℃':'終壓溫度不得低於 90 ℃（細部設計成果附冊（施工規範）V3.2 第02796章 3.6.2）','縱向接縫錯開 ≥ 15 cm':'分層鋪築時，上下各層縱橫接縫不得築在同一垂直面上，縱向接縫至少應相距 15 cm（細部設計成果附冊（施工規範）V3.2 第02796章 3.5(11)）','橫向接縫錯開 ≥ 60 cm':'分層鋪築時，上下各層橫向接縫至少應相距 60 cm（細部設計成果附冊（施工規範）V3.2 第02796章 3.5(11)）'}}]},
+  /* zones 1-2 施工查驗重點 (user 2026-10-28:「工區一二也弄一個這種的，分成 既有道面打除 路基土壤層 水泥處理級配層 水泥混凝土層(目前的掃紋到填縫移進來)」):
+     as wz3insp; tab 4 is the 從掃紋到填縫 viewer (S.pcc, A.wz1). Pictures of tabs 1-3: zone-1 hero frames, temporary */
+  z12insp:{online:false,   // user 2026-10-28:「要上線的話工區一二未完成先不要更新」- shown on localhost only until the user says it is done
+    kick:'查驗',title:'施工查驗重點',lead:'依層次查驗。點大標籤切換層次、小標籤切換查驗項目；點畫面或按 → ，看下一項。',
+    leadTouch:'依層次查驗。點大標籤切換層次、小標籤切換查驗項目；點畫面或左右滑動，看下一項。',
+    quote:'標準值依細部設計成果附冊（施工規範）V3.2、細部設計圖說 V3.2 與統包商第一工區施工簡報（115/10/19 晨會）；點字卡的 ⓘ 看出處。（前三個頁籤的畫面暫用，模型詳圖待補）',
+    tabs:[
+     {k:'demo',n:'既有道面打除',sub:'切割、破碎、運棄',c:'#9aa3ab',
+      states:[{short:'放樣切割',title:'放樣、切割',sub:'依施工範圍放樣，切割既有道面',src:'assets/hero/z1/060.jpg',thumb:'assets/hero/z1/060.jpg',spots:[['切割線依放樣',.55,.70]]},
+        {short:'分段打除',title:'分段打除',sub:'分區分塊破碎，陸續載運',src:'assets/hero/z1/060.jpg',thumb:'assets/hero/z1/060.jpg',spots:[['SA-1～SA-4 分段',.55,.70]]},
+        {short:'運棄',title:'運棄',sub:'打除後的廢棄物運離現場',src:'assets/hero/z1/060.jpg',thumb:'assets/hero/z1/060.jpg',spots:[['運至核准場所',.55,.70]]}],
+      notes:{'切割線依放樣':'測量切割：施工位置，確保符合設計坡度與高程；自主檢查為高程檢測及切割規劃，檢驗停留為現場抽驗（統包商第一工區施工簡報（115/10/19 晨會） p.12）','SA-1～SA-4 分段':'SA-1 0K+460～300、SA-2 0K+301～157、SA-3 0K+158～000、SA-4 0K+460.3～513，共 46 工作天（統包商第一工區施工簡報（115/10/19 晨會） p.8）','運至核准場所':'拆除工作完成後之廢棄物，應按監造單位核可之方式運離現場，置於主管機關核准之場所（細部設計成果附冊（施工規範）V3.2 第02220章 3.1.9）'}},
+     {k:'soil',n:'路基土壤層',sub:'開挖深度 70 cm',c:'#8a6a4a',
+      states:[{short:'洩水坡度',title:'洩水坡度',sub:'整平與滾壓原有路基面，符合設計坡度與高程，往外側 1.0% 洩水',src:'assets/hero/z1/100.jpg',thumb:'assets/hero/z1/100.jpg',spots:[['1.0%',.55,.70]]},
+        {short:'壓實度',title:'壓實度（工地密度）',sub:'整平滾壓後做工地密度試驗',src:'assets/hero/z1/100.jpg',thumb:'assets/hero/z1/100.jpg',spots:[['壓實度 ≥ 95%',.55,.70]]}],
+      notes:{'1.0%':'路基整理：整平與滾壓原有路基面，確保符合設計坡度與高程（統包商第一工區施工簡報（115/10/19 晨會） p.12）；設計橫坡 1.0%，由跑道中心線往外側洩水（細部設計圖說 F-01、F-02 標準橫斷面圖）','壓實度 ≥ 95%':'原土層整平滾壓後做工地密度試驗，壓實度 ≥ 最大乾密度 95%'}},
+     {k:'ctb',n:'水泥處理級配層',sub:'厚度 30 cm',c:'#a8987a',
+      states:[{short:'洩水坡度',title:'洩水坡度',sub:'表面整形滾壓須符合設計圖的路拱、坡度及線形，往外側 1.0% 洩水',src:'assets/hero/z1/120.jpg',thumb:'assets/hero/z1/120.jpg',spots:[['1.0%',.40,.66]]},
+        {short:'壓實度',title:'壓實度（工地密度）',sub:'滾壓後做工地密度試驗',src:'assets/hero/z1/120.jpg',thumb:'assets/hero/z1/120.jpg',spots:[['壓實度平均 ≥ 98%',.40,.66]]},
+        {short:'平整度',title:'平整度',sub:'以 3 m 長直規量測表面高度差',src:'assets/hero/z1/120.jpg',thumb:'assets/hero/z1/120.jpg',spots:[['高度差 ≤ 1 cm',.40,.66]]},
+        {short:'厚度',title:'厚度',sub:'量測完成厚度',src:'assets/hero/z1/120.jpg',thumb:'assets/hero/z1/120.jpg',spots:[['30 cm（不足 ≤ 12 mm）',.40,.66]]},
+        {short:'分層',title:'分層鋪築',sub:'30 cm 分兩層 15＋15 cm 鋪築，上下層接縫錯開',src:'assets/hero/z1/120.jpg',thumb:'assets/hero/z1/120.jpg',spots:[['分兩層 15＋15 cm',.40,.66]]}],
+      notes:{'1.0%':'表面整形及滾壓，務須符合設計圖說所示路拱、坡度及線形之規定（細部設計成果附冊（施工規範）V3.2 第02716章 3.5.1）；設計橫坡 1.0%，由跑道中心線往外側洩水（細部設計圖說 F-01、F-02 標準橫斷面圖）','壓實度平均 ≥ 98%':'工地密度試驗每 2,500 m² 一組；壓實度平均值 ≥ 試驗室最大乾密度 98%（細部設計成果附冊（施工規範）V3.2 第02716章 3.10.1）','高度差 ≤ 1 cm':'以 3 m 長直規沿平行路中心線或以樣板沿斷面檢視，高度差不得超過 1 cm（細部設計成果附冊（施工規範）V3.2 第02716章 3.7）','30 cm（不足 ≤ 12 mm）':'PC 整建區 CTB 厚度 30 cm，不得不足 12 mm，隨機取樣範圍 7.5 m × 7.5 m（細部設計成果附冊（施工規範）V3.2 第02716章 3.9.1）','分兩層 15＋15 cm':'每層滾壓厚度不得大於 15 cm（細部設計成果附冊（施工規範）V3.2 第02716章 3.4.1）；厚度 30 cm 分兩層鋪築，上下層銜接位置錯開 1 m 以上（統包商第一工區施工簡報（115/10/19 晨會） p.9、p.13）'}},
+     {k:'pcc',n:'水泥混凝土層',sub:'厚度 40 cm',c:'#b9c3cc',pcc:1}]},
   /* zones 1 and 2: S03c / S04c (user 2026-10-12, 「工區二也一併做」) — a block pulled out of the PCC pavement: texture, joints, sealing (F-24) */
   pcc:{kick:'施工',title:'從掃紋到填縫',lead:'從道面拉出一塊來看。點下方的施工步驟、點畫面或按 → ，看下一個步驟。',
     leadTouch:'從道面拉出一塊來看。點下方的施工步驟、點畫面或左右滑動，看下一個步驟。',
@@ -164,6 +231,7 @@ window.SITE={
     tools:[['Blender 5.1','模型、算圖、影片輸出（背景執行）'],['Python／Pillow','影格合成、字幕、標註、網站素材'],['HTML／CSS／JavaScript','網站本身，不用外部套件，可離線開啟'],['Claude、Codex','撰寫與檢查腳本、網站程式；所有輸出由承辦人驗收']],
     sources:[['模型說明','模型為示意，位置依設計展示配準，非測量成果。'],
       ['施工機具模型','"Excavator (CAT)" by sarvesh12, CC BY 4.0；"Road roller truck" by Sidra, CC BY 4.0；"HINO+dump+truck+3d+model" by 3DMODEL, CC BY 4.0（皆 Sketchfab；工區三施工順序用，挖土機破碎頭為自製）'],   // 2026-10-27 before going online
+      ['測量儀器模型','"TS02 Leica Total Station Instrument" by Koksan, CC BY 4.0（工區三施工查驗重點「開挖深度」用；腳架、箱尺為自製）'],   // 2026-10-29: details/thick.py
       ['飛機模型','"Boeing 747-100" by Marine, CC BY 4.0；"Boeing-787- Dreamliner" by themaker845, CC BY 4.0'],
       ['版本','網站 2026-10-10 全站版；導覽影片 v6']]}
 };

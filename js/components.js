@@ -219,6 +219,12 @@ G.Rail=function(root,items,onPick,first){const n0=first==null?1:first;
   window.addEventListener('resize',place);setTimeout(place,60);$$('img',root).forEach(im=>im.addEventListener('load',place));
   return {set,place,destroy(){window.removeEventListener('resize',place)}};
 };
+/* 2026-10-29 (施工查驗重點:「把這部分改到大標籤下面變成小標籤切換」): the State viewer's items as small tabs in a host of their own (the Rail's set / destroy) */
+G.SubTabs=function(host,labels,onPick){
+  host.innerHTML=labels.map((l,i)=>`<button type="button"><b>${G.pad(i+1)}</b>${l}</button>`).join('');const bs=$$('button',host);
+  bs.forEach((b,i)=>b.onclick=()=>onPick(i));
+  return {set(i){bs.forEach((b,k)=>b.classList.toggle('on',k===i))},place(){},destroy(){host.innerHTML=''}};
+};
 
 /* ---------- live mini sections beside the state viewers (zone 3 trench / zone 4 overlay) ---------- */
 function dropRect(parent,attrs,delay){const r=el('rect',Object.assign({opacity:0},attrs),parent);
@@ -278,7 +284,7 @@ G.LiveWZ4=function(svg){
 G.StateViewer=function(root,cfg){
   const N=cfg.states.length;const touch=(()=>{try{return matchMedia('(pointer:coarse)').matches}catch(e){return false}})();
   const HINT=touch?'點畫面或左右滑動看下一步':'點畫面或按 → 看下一步';
-  root.innerHTML=`<div class="sv"><div class="stage"><img alt=""><img alt="" class="hidden"><div class="hotlayer"></div><div class="tag"></div>
+  root.innerHTML=`<div class="sv"><div class="stage"><img alt=""><img alt="" class="hidden"><video class="hidden" muted playsinline preload="none"></video><div class="hotlayer"></div><div class="tag"></div>
       <button class="nav-b prev" aria-label="上一步">‹</button><button class="nav-b next" aria-label="下一步">›</button><div class="hint"><i></i><span>${HINT}</span></div></div><ol class="lab-legend"></ol>
     <aside class="side" aria-live="polite"><div class="no"><b>01</b><span>/ ${G.pad(N)}</span></div><h3></h3><p></p>${cfg.live?'<div class="live"><svg></svg></div>':''}</aside>
     <div class="rail-host"></div></div>`;
@@ -287,8 +293,9 @@ G.StateViewer=function(root,cfg){
   const idxOf=f=>{let b=0;F.forEach((x,k)=>{if(Math.abs(x.f-f)<Math.abs(F[b].f-f))b=k});return b};
   S.forEach(s=>{if(s.f!=null){s.k=idxOf(s.f);s.ke=s.enter!=null?idxOf(s.enter):s.k}});
   const live=cfg.live?cfg.live($('.live svg',root)):null;
-  const rail=G.Rail($('.rail-host',root),S.map(s=>({label:s.short,thumb:s.thumb})),i=>{used();go(i)});
-  let gate=null;G.onView(root,()=>{gate=G.LoadGate($('.sv',root),[...srcs,...S.filter(s=>s.src).map(s=>s.src)],{title:'步驟畫面載入中'})},0);   // 2026-10-21: covered until all frames are in
+  const pick=i=>{used();go(i,i===cur&&!!S[i].clip)};   // a clip's item again: plays it again
+  const rail=cfg.subtabs?G.SubTabs(cfg.subtabs,S.map(s=>s.short),pick):G.Rail($('.rail-host',root),S.map(s=>({label:s.short,thumb:s.thumb})),pick);
+  let gate=null;G.onView(root,()=>{gate=G.LoadGate($('.sv',root),[...srcs,...S.filter(s=>s.src).map(s=>s.src),...S.filter(s=>s.clip).map(s=>s.clip.a)],{title:'步驟畫面載入中'})},0);   // 2026-10-21: covered until all frames are in (clips: their first pictures; the MP4s load when played)
   let front=imgs[0],back=imgs[1],cur=-1,frame=-1,token=0;
   function cross(src,done){const my=token;back.onload=null;
     // 2026-10-11: drop the load handler once it has fired; otherwise the morph that follows changes this (now front) picture's
@@ -334,11 +341,27 @@ G.StateViewer=function(root,cfg){
       `<span class="${note?'more':''}" style="left:${dx}px;top:${dy-16}px;animation-delay:${n*.15+.3}s;${o[2]==='c'?'translate:-50% 0;':dx<0?'translate:-100% 0;':''}"><b>${txt}</b>${note?`<em>${note}</em>`:''}</span>`,hot);
     e.style.left=(x*100)+'%';e.style.top=(y*100)+'%';const sp=$('span',e);if(note)sp.onclick=ev=>{ev.stopPropagation();sp.classList.toggle('open')}
     return {x:x*stage.clientWidth,y:y*stage.clientHeight,dx,dy,mode:o[2]==='c'?'c':dx<0?'r':'l',span:sp,line:$('line',e),nb:$('.nb',e),txt,note}}
-  function go(i){i=Math.max(0,Math.min(N-1,i));if(i===cur)return;token++;const a=S[cur]||{},b=S[i];const first=cur<0;cur=i;
+  // 2026-10-29 (user:「3個施工查驗重點，好了就先上測試版網站」): a state may be a rendered clip {clip:{mp4,a,z},cues}: from its first
+  // picture (a) the MP4 plays over the pictures; cues [t0,t1,label,x,y,hold s] put a label on while it plays (the video waits hold s at
+  // t1); once it has ended its last picture (z) is under it and the state's spots come on
+  const vid=$('.stage>video',root);
+  function unclip(){vid.onended=null;vid.pause();vid.classList.add('hidden')}
+  function clip(s,done,first){const my=token,Q=s.clip;let on=-1,held=-1;
+    const start=()=>{if(my!==token)return;if(vid.getAttribute('src')!==Q.mp4){vid.src=Q.mp4}else vid.currentTime=0;
+      vid.classList.remove('hidden');vid.onended=()=>{if(my!==token)return;front.src=Q.z;done()};
+      const p=vid.play();if(p&&p.catch)p.catch(()=>{if(my===token){front.src=Q.z;vid.classList.add('hidden');done()}});
+      const cs=s.cues||[];if(!cs.length)return;
+      const poll=()=>{if(my!==token||vid.ended)return;const t=vid.currentTime,c=cs.findIndex((q,n)=>t>=q[0]&&(t<q[1]||(held===n&&vid.paused)));
+        if(c!==on){on=c;hot.innerHTML='';plain();hot.classList.remove('moving');if(c>=0)addLabel(cs[c][2],cs[c][3],cs[c][4],0)}
+        const k=cs.findIndex(q=>q[5]&&t>=q[1]&&t<q[1]+.3);if(k>=0&&held<k){held=k;vid.pause();setTimeout(()=>{if(my===token)vid.play()},cs[k][5]*1000)}
+        G.tick(poll)};G.tick(poll)};
+    frame=-1;if(first){front.src=Q.a;G.onView(stage,start,.4)}else cross(Q.a,start)}
+  function go(i,again){i=Math.max(0,Math.min(N-1,i));if(i===cur&&!again)return;token++;unclip();const a=S[cur]||{},b=S[i];const first=cur<0;cur=i;
     rail.set(i);$('.prev',root).disabled=i===0;$('.next',root).disabled=i===N-1;hint.querySelector('span').textContent=i===N-1?'點畫面從頭再看一次':HINT;
     hot.classList.add('moving');plain();texts(i);if(live)live.set(i);
     const on=cfg.tag&&cfg.tag.on.includes(i);tag.textContent=cfg.tag?cfg.tag.text:'';tag.classList.toggle('on',!!on);
     const done=()=>settle(i);
+    if(b.clip){clip(b,done,first);return}
     if(first){if(b.src){front.src=b.src;frame=-1}else{frame=b.k;front.src=srcs[frame]}setTimeout(done,300);return}
     if(b.src)cross(b.src,()=>{frame=-1;done()});
     else if(a.src==null&&frame>=0)morph(b.k,done);
@@ -352,7 +375,7 @@ G.StateViewer=function(root,cfg){
     if(e.key==='ArrowRight'&&cur<N-1){used();go(cur+1);e.preventDefault()}else if(e.key==='ArrowLeft'&&cur>0){used();go(cur-1);e.preventDefault()}};
   document.addEventListener('keydown',onKey);
   go(0);
-  return {go,destroy(){token++;if(gate)gate.cancel();document.removeEventListener('keydown',onKey);rail.destroy()}};
+  return {go,destroy(){token++;unclip();if(gate)gate.cancel();document.removeEventListener('keydown',onKey);rail.destroy()}};
 };
 
 /* ---------- before / after: drag the handle; each new pair sweeps in by itself ---------- */

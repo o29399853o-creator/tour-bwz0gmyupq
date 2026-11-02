@@ -93,30 +93,58 @@ G.pages.zone=function(n){
   // both are PCC 40 + CTB 30. r2 (user:「鋪面分層還有從掃紋到填縫這兩個重複地拿掉，然後工區二的動畫部分移到工區一下面」): the two model
   // loops first (工區一, 工區二), then 鋪面分層 and 從掃紋到填縫 once, with zone 1's pictures
   n=+n;const parts=n<=2?[1,2]:[n],route='#/zone/'+parts[0],VV={1:A.wz1&&S.pcc,2:A.wz2&&S.pcc,3:S.wz3,4:S.wz4},two=parts.length>1;
-  const hero=z=>{const Z=S.zones[z];
+  // 2026-10-29 (user, a picture of zone 3's model loop, 重點數據, 鋪面分層 and the layered model:「這四個部分重複性太高，我想把左上的動畫移除
+  // 節省網站讀取時間，其他幫我整合」): LEAN zones have no model loop up top; 重點數據 (less the layers the section already draws) goes under
+  // the two cards of 鋪面分層 in one row; then「其他兩工區頁面一併辦理」: all zones (zones 1-2: one row for both, a fact that differs
+  // under each zone's name - their model loops' headings #zp-1 / #zp-2 are gone with them, app.js's focus finds none and stays on top)
+  const LEAN=new Set([1,2,3,4]),lean=parts.every(z=>LEAN.has(z)),LAYF=['面層','基層','底層'];
+  const hero=z=>{const Z=S.zones[z];if(lean)return '';
     return `${two?`<h2 class="zpart-h rv" id="zp-${z}" style="--zc:${G.COL[z]}"><i></i>${Z.name}<small>${Z.cap}</small></h2>`:''}
     <div class="zone-hero" data-z="${z}"><div class="player rv"></div><aside class="facts rv" data-d="150"><h3>重點數據</h3>${Z.facts.map(f=>`<div class="fact"><span>${f[0]}</span><b>${f[1]}</b></div>`).join('')}</aside></div>`};
-  const z0=parts[0],Z0=S.zones[z0],V=z0===3&&A.wz3seq?null:VV[z0],same=two?'工區一、二相同；':'';   // 2026-10-26: zone 3's cover-plate cycle is part of 施工順序
-  const shared=`<section class="block">${sec('斷面','鋪面分層',`${same}依厚度比例由下往上疊出各層；${G.touch?'點':'滑鼠移到'}任一層看說明。${G.stacked()?'下方':'右邊'}是影片裡的分層模型。`)}
-      <div class="sec-grid"><div class="sec-card rv"><svg></svg></div><figure class="model rv" data-d="150"><img src="${A.layers[z0]}" alt="${Z0.name}分層模型"><figcaption>影片中的分層模型（浮起示意）</figcaption></figure></div>
+  const z0=parts[0],Z0=S.zones[z0],same=two?'工區一、二相同；':'';
+  // 施工查驗重點 (2026-10-28): layer tabs on zone 3 and on zones 1-2 (where 從掃紋到填縫 became the tab 水泥混凝土層)
+  // (zones 1-2: S.z12insp.online false = only on this machine, the published site keeps 從掃紋到填縫 - user:「要上線的話工區一二未完成先不要更新」)
+  const local=/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const INSP=z0===3?S.wz3insp:(z0===1&&S.z12insp&&(S.z12insp.online||local)?S.z12insp:null);
+  const V=(z0===3&&A.wz3seq)||(z0===1&&INSP)?null:VV[z0];   // 2026-10-26: zone 3's cover-plate cycle is part of 施工順序
+  const fx=z=>S.zones[z].facts.filter(f=>!LAYF.includes(f[0])),zf=(z,f)=>[S.zones[z].name+f[0],f[1]];
+  const rowF=!two?fx(z0):[...fx(parts[0]).flatMap(f=>{const g=fx(parts[1]).find(x=>x[0]===f[0]);return g&&g[1]===f[1]?[f]:[zf(parts[0],f),...(g?[zf(parts[1],g)]:[])]}),
+    ...fx(parts[1]).filter(g=>!fx(parts[0]).some(f=>f[0]===g[0])).map(g=>zf(parts[1],g))];
+  const facts=lean?`<div class="facts-row rv" data-d="250">${rowF.map(f=>`<div class="fact"><span>${f[0]}</span><b>${f[1]}</b></div>`).join('')}</div>`:'';
+  const shared=`<section class="block">${sec('斷面','鋪面分層',`${same}依厚度比例由下往上疊出各層；${G.touch?'點':'滑鼠移到'}任一層看說明。${G.stacked()?'下方':'右邊'}是影片裡的分層模型${lean?'與重點數據':''}。`)}
+      <div class="sec-grid"><div class="sec-card rv"><svg></svg></div><figure class="model rv" data-d="150"><img src="${A.layers[z0]}" alt="${Z0.name}分層模型"><figcaption>影片中的分層模型（浮起示意）</figcaption></figure></div>${facts}
       ${Z0.note?`<p class="note">${Z0.note}</p>`:''}</section>
     ${z0===3&&A.wz3seq?`<section class="block">${sec(S.wz3seq.kick,S.wz3seq.title,S.wz3seq.lead)}<div class="seq-host rv"></div></section>`:''}
+    ${INSP?`<section class="block">${sec(INSP.kick,INSP.title,(G.touch&&INSP.leadTouch)||INSP.lead)}
+      <div class="iq-ztabs insp-tabs rv">${INSP.tabs.map((t,i)=>`<button type="button" data-i="${i}" style="--zc:${t.c}"><b>${t.n}</b><small>${t.sub}</small></button>`).join('')}</div>
+      <div class="insp-sub rv"></div><div class="insp-host rv"></div>${INSP.quote?`<p class="note">${INSP.quote}</p>`:''}</section>`:''}
     ${V?`<section class="block" data-z="${z0}">${sec(V.kick,V.title,same+((G.touch&&V.leadTouch)||V.lead))}<div class="sv-host rv"></div>${V.quote?`<p class="note">${V.quote}</p>`:''}</section>`:''}`;
   const root=page('zone',`${head(route,'<svg class="zone-strip"></svg>')}${parts.map(hero).join('')}${shared}${G.pager(route)}${G.footer()}`);
   root.style.setProperty('--zc',G.COL[parts[0]]);
   const showT=titleIn(root);const strip=G.ZoneStrip($('.zone-strip',root),parts);
   // whole shot, ends on the exploded layers. B: phones take every second frame at half the rate (same length, half the data)
   // the MP4 when there is one (prep_site_extras_B.py), otherwise the frames
-  const players=parts.map(z=>{const H=A.hero[z],HF=H.frames,half=G.narrow(),hf=half?HF.filter((_,i)=>i%2===0||i===HF.length-1):HF,el_=$(`.zone-hero[data-z="${z}"] .player`,root);
+  const players=(lean?[]:parts).map(z=>{const H=A.hero[z],HF=H.frames,half=G.narrow(),hf=half?HF.filter((_,i)=>i%2===0||i===HF.length-1):HF,el_=$(`.zone-hero[data-z="${z}"] .player`,root);
     return H.mp4?G.HeroVideo(el_,H.mp4,HF,H.fps,H.hold):G.FramePlayer(el_,hf,half?H.fps/2:H.fps,null,H.hold)});
   const secv=G.Section($('.sec-card svg',root),S.zones[parts[0]].section,{total:S.zones[parts[0]].total});
   const svs=parts.map(z=>{const host=$(`section[data-z="${z}"] .sv-host`,root);if(!host)return null;
     return z===3?wz3Viewer(host):z===4?wz4Viewer(host):z===1&&A.wz1?pccViewer(host,A.wz1):z===2&&A.wz2?pccViewer(host,A.wz2):null});
   // 工區三 施工順序 (2026-10-25, user:「在工區三的鋪面分層下面做一區域是施工順序」): work/wz3_sequence_20261025
   const seqHost=$('.seq-host',root),seq=seqHost?G.SeqPlayer(seqHost,A.wz3seq,{rate:S.wz3seq.rate,fast:S.wz3seq.fast,spots:S.wz3seq.spots,notes:S.wz3.notes,join:S.wz3seq.join,hold:S.wz3seq.hold}):null;
+  // 工區三 施工查驗重點 (2026-10-28, user:「施工順序後面加一個區塊是施工查驗重點」「我想像工區一二的那個詳圖那樣」, then「改用頁籤方式切換，
+  // 分路基土壤層、碎石級配層、水泥級配層、改質瀝青混凝土層」): layer tabs; the State viewer of the chosen layer (one picture of the model
+  // per item, labels on it) is built again on each switch (S.wz3insp.tabs; pictures temporary until the detail renders); zones 1-2 the same
+  // (S.z12insp), its tab pcc:1 the 從掃紋到填縫 viewer
+  // 2026-10-29 (user, a picture of the thumbnail rail:「把這部分改到大標籤下面變成小標籤切換」): the items as small tabs under the layer tabs
+  const inspHost=$('.insp-host',root),inspSub=$('.insp-sub',root);let insp=null;
+  function inspTab(i){const T_=INSP.tabs[i];$$('.insp-tabs button',root).forEach(b=>b.classList.toggle('on',+b.dataset.i===i));
+    if(insp)insp.destroy();if(inspSub){inspSub.innerHTML='';inspSub.style.setProperty('--zc',T_.c)}
+    insp=T_.pcc?pccViewer(inspHost,A.wz1):G.StateViewer(inspHost,{frames:T_.frames||[],notes:T_.notes,defOffset:[110,-110],states:T_.states,subtabs:inspSub})}
+  // (a tab's frames: a detail rendered on from a picture, e.g. 洩水坡度 from the last picture of 施工順序 - a state {f, enter} plays it)
+  if(inspHost){$$('.insp-tabs button',root).forEach(b=>b.onclick=()=>inspTab(+b.dataset.i));inspTab(0)}
   return {el:root,
     enter(){showT();strip.play();G.onView($('.sec-card',root),()=>secv.play(),.35)},
-    destroy(){players.forEach(p=>p.destroy());svs.forEach(v=>v&&v.destroy());if(seq)seq.destroy()}};
+    destroy(){players.forEach(p=>p.destroy());svs.forEach(v=>v&&v.destroy());if(seq)seq.destroy();if(insp)insp.destroy()}};
 };
 
 /* ================= 施工階段 ================= */
