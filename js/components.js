@@ -129,8 +129,9 @@ G.SeqPlayer=function(root,m,opt){
   let alive=true,cur=-1,endT=0,raf=0,last=-1,seg=-1,held={},holdT=0,holdJ=-1;
   const endOf=i=>i<n-1?ST[i+1].t:(m.duration||v.duration||1e9);
   const say=t=>{nx.textContent=t;nx.classList.toggle('on',!!t)};
-  const hint=()=>say(!v.paused?'':cur<0?'點畫面開始播放 ▶':cur>=n-1?'播完了，點畫面從頭看 ↺':`點畫面播下一步：${ST[cur+1].short} ▶`);
-  const rail=G.Rail($('.seq-rail',root),ST.map(s=>({label:s.short})),i=>playStep(i));
+  const hint=()=>say(!v.paused?'':cur<0?'點畫面開始播放 ▶':cur>=n-1?'播完了，點畫面從頭看 ↺':`點畫面播下一步：${lab(ST[cur+1])} ▶`);
+  const lab=s=>(opt.labels||{})[s.key]||s.short;   // 2026-11-02: a stop named other than its first segment (7 鋪瀝青 starts with 噴油)
+  const rail=G.Rail($('.seq-rail',root),ST.map(s=>({label:lab(s)})),i=>playStep(i));
   function show(j){if(j===last)return;last=j;$('b',cap).textContent=SG[j].title;$('span',cap).textContent=SG[j].sub||'';rail.set(stopOf[j])}
   function stopAt(t,j){v.pause();cancelAnimationFrame(raf);try{v.currentTime=Math.max(SG[j].t,t)}catch(e){};labels(SG[j].key)}
   // per screen refresh while playing: the segment's caption and speed, a hold, the stop on the step's last frame.
@@ -300,7 +301,10 @@ G.StateViewer=function(root,cfg){
   function cross(src,done){const my=token;back.onload=null;
     // 2026-10-11: drop the load handler once it has fired; otherwise the morph that follows changes this (now front) picture's
     // src frame by frame, the handler fires again, swaps the pictures back and starts a second morph (the step ran twice)
-    const swap=()=>{back.onload=null;if(my!==token)return;back.classList.remove('hidden');front.classList.add('hidden');[front,back]=[back,front];setTimeout(()=>{if(my===token)done()},480)};
+    // 2026-11-02 (user:「切換施工查驗重點小頁籤時，都會先閃一下」): the new picture fades in on top while the old one stays fully on
+    // under it, then the old one goes off unseen (both fading at once dipped through the black stage)
+    const swap=()=>{back.onload=null;if(my!==token)return;const old=front;stage.insertBefore(back,vid);back.classList.remove('hidden');[front,back]=[back,front];
+      setTimeout(()=>{if(front!==old){old.style.transition='none';old.classList.add('hidden');void old.offsetWidth;old.style.transition=''}if(my===token)done()},480)};
     back.src=src;if(back.complete&&back.naturalWidth)swap();else back.onload=swap}
   function morph(to,done){const from=frame,dur=Math.max(500,Math.min(2400,Math.abs(F[to].f-F[from].f)*14)),t0=performance.now(),my=token;
     const step=()=>{if(my!==token)return;const t=Math.min(1,(performance.now()-t0)/dur),k=Math.round(from+(to-from)*ease.io(t));
@@ -345,22 +349,30 @@ G.StateViewer=function(root,cfg){
   // picture (a) the MP4 plays over the pictures; cues [t0,t1,label,x,y,hold s] put a label on while it plays (the video waits hold s at
   // t1); once it has ended its last picture (z) is under it and the state's spots come on
   const vid=$('.stage>video',root);
-  function unclip(){vid.onended=null;vid.pause();vid.classList.add('hidden')}
-  function clip(s,done,first){const my=token,Q=s.clip;let on=-1,held=-1;
-    const start=()=>{if(my!==token)return;if(vid.getAttribute('src')!==Q.mp4){vid.src=Q.mp4}else vid.currentTime=0;
-      vid.classList.remove('hidden');vid.onended=()=>{if(my!==token)return;front.src=Q.z;done()};
+  function unclip(){vid.onended=vid.onloadeddata=vid.onseeked=null;vid.pause();vid.classList.add('hidden')}
+  // 2026-11-02 (user:「…都會先閃一下」): leaving a clip that is on screen, the next picture goes in under the video first and only
+  // then the video fades (it faded at once onto the clip's stale first picture, then the pictures crossed)
+  function leave(src,then){const my=token;vid.onended=vid.onloadeddata=vid.onseeked=null;vid.pause();
+    const fade=()=>{front.onload=null;if(my!==token)return;vid.classList.add('hidden');setTimeout(()=>{if(my===token)then()},480)};
+    front.src=src;if(front.complete&&front.naturalWidth)fade();else front.onload=fade}
+  function clip(s,done,first,ready){const my=token,Q=s.clip;let on=-1,held=-1;
+    // the video comes on once its first frame is there (= picture a under it; it showed the last clip's frame till then)
+    const start=()=>{if(my!==token)return;const show=()=>{vid.onloadeddata=vid.onseeked=null;if(my===token)vid.classList.remove('hidden')};
+      if(vid.getAttribute('src')!==Q.mp4){vid.onloadeddata=show;vid.src=Q.mp4}else{vid.onseeked=show;vid.currentTime=0}
+      vid.onended=()=>{if(my!==token)return;front.src=Q.z;done()};
       const p=vid.play();if(p&&p.catch)p.catch(()=>{if(my===token){front.src=Q.z;vid.classList.add('hidden');done()}});
       const cs=s.cues||[];if(!cs.length)return;
       const poll=()=>{if(my!==token||vid.ended)return;const t=vid.currentTime,c=cs.findIndex((q,n)=>t>=q[0]&&(t<q[1]||(held===n&&vid.paused)));
         if(c!==on){on=c;hot.innerHTML='';plain();hot.classList.remove('moving');if(c>=0)addLabel(cs[c][2],cs[c][3],cs[c][4],0)}
         const k=cs.findIndex(q=>q[5]&&t>=q[1]&&t<q[1]+.3);if(k>=0&&held<k){held=k;vid.pause();setTimeout(()=>{if(my===token)vid.play()},cs[k][5]*1000)}
         G.tick(poll)};G.tick(poll)};
-    frame=-1;if(first){front.src=Q.a;G.onView(stage,start,.4)}else cross(Q.a,start)}
-  function go(i,again){i=Math.max(0,Math.min(N-1,i));if(i===cur&&!again)return;token++;unclip();const a=S[cur]||{},b=S[i];const first=cur<0;cur=i;
+    frame=-1;if(ready)start();else if(first){front.src=Q.a;G.onView(stage,start,.4)}else cross(Q.a,start)}
+  function go(i,again){i=Math.max(0,Math.min(N-1,i));if(i===cur&&!again)return;token++;const vis=!vid.classList.contains('hidden');if(!vis)unclip();const a=S[cur]||{},b=S[i];const first=cur<0;cur=i;
     rail.set(i);$('.prev',root).disabled=i===0;$('.next',root).disabled=i===N-1;hint.querySelector('span').textContent=i===N-1?'點畫面從頭再看一次':HINT;
     hot.classList.add('moving');plain();texts(i);if(live)live.set(i);
     const on=cfg.tag&&cfg.tag.on.includes(i);tag.textContent=cfg.tag?cfg.tag.text:'';tag.classList.toggle('on',!!on);
     const done=()=>settle(i);
+    if(vis){leave(b.clip?b.clip.a:b.src||srcs[b.k],()=>{frame=b.clip||b.src?-1:b.k;if(b.clip)clip(b,done,false,true);else done()});return}
     if(b.clip){clip(b,done,first);return}
     if(first){if(b.src){front.src=b.src;frame=-1}else{frame=b.k;front.src=srcs[frame]}setTimeout(done,300);return}
     if(b.src)cross(b.src,()=>{frame=-1;done()});

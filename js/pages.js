@@ -130,7 +130,7 @@ G.pages.zone=function(n){
   const svs=parts.map(z=>{const host=$(`section[data-z="${z}"] .sv-host`,root);if(!host)return null;
     return z===3?wz3Viewer(host):z===4?wz4Viewer(host):z===1&&A.wz1?pccViewer(host,A.wz1):z===2&&A.wz2?pccViewer(host,A.wz2):null});
   // 工區三 施工順序 (2026-10-25, user:「在工區三的鋪面分層下面做一區域是施工順序」): work/wz3_sequence_20261025
-  const seqHost=$('.seq-host',root),seq=seqHost?G.SeqPlayer(seqHost,A.wz3seq,{rate:S.wz3seq.rate,fast:S.wz3seq.fast,spots:S.wz3seq.spots,notes:S.wz3.notes,join:S.wz3seq.join,hold:S.wz3seq.hold}):null;
+  const seqHost=$('.seq-host',root),seq=seqHost?G.SeqPlayer(seqHost,A.wz3seq,{rate:S.wz3seq.rate,fast:S.wz3seq.fast,spots:S.wz3seq.spots,notes:S.wz3.notes,join:S.wz3seq.join,hold:S.wz3seq.hold,labels:S.wz3seq.labels}):null;
   // 工區三 施工查驗重點 (2026-10-28, user:「施工順序後面加一個區塊是施工查驗重點」「我想像工區一二的那個詳圖那樣」, then「改用頁籤方式切換，
   // 分路基土壤層、碎石級配層、水泥級配層、改質瀝青混凝土層」): layer tabs; the State viewer of the chosen layer (one picture of the model
   // per item, labels on it) is built again on each switch (S.wz3insp.tabs; pictures temporary until the detail renders); zones 1-2 the same
