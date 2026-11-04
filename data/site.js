@@ -12,7 +12,6 @@ window.SITE={
     {route:'#/control',label:'施工管制',sub:'木製圍籬與二號聯絡道封閉'},
     {route:'#/aids',label:'助航設施',sub:'邊燈迴路、末端燈、手孔、標誌牌'},
     {route:'#/insp',label:'監造查驗',sub:'查驗項目介紹：工區一～四、助航燈光'},   // B 2026-10-12
-    {route:'#/film',label:'導覽影片',sub:'完整影片與章節'},
     {route:'#/making',label:'製作過程',sub:'AI 練習成果紀錄與資料來源'}],
   zones:{
     /* zones 1 / 2 are hammer-shaped (user 2026-10-11, photo): the runway width (45 m) plus a head where both sides widen by 15 m at the
@@ -216,9 +215,11 @@ window.SITE={
         low:'到決斷高度太低（PAPI 全紅）：必須重飛',goa:'重飛：爬升離開，重新進場',land:'落地'}},
     facts:[['排列','A～D 一排，D 最靠近跑道；D 距道肩邊線 15 m，燈與燈間距 9 m'],['基座','臨時基礎座 1.5 m × 1.5 m'],['安裝','燈箱在同一水平線上，中心點與跑道中心線等高，並與跑道中心線垂直'],
       ['施工期間','配合跑道頭移設重新建置臨時 PAPI：03 臨時跑道（施工階段一）、21 臨時跑道（施工階段二）']]},
-  chapterTitles:{S07b:'工區四　一層層看施工',S03b:'木製圍籬特寫　工區一（03 端）'},
   /* 製作過程 */
   making:{
+    /* 2026-11-04 (user:「將此影片上線到製作過程」): the process film, 個人/AI小組/流程影片_導覽網站 (encode_web.py) */
+    film:{src:'assets/making/flow_film.mp4',poster:'assets/making/flow_poster.jpg',title:'12 道工序',
+      lead:'這個網站從讀圖說到推上線的 12 道工序，壓成 32 秒：每蓋一個「完成」章，後方螢幕就換成那一站的實際產出。'},
     flow:[['Blender 模型','配置跑道、標線、燈具、分層'],['算圖影格','Blender 5.1 背景算圖，每秒 24 格'],['影片合成','Python 疊字幕與標註，輸出 H.264'],['網站互動','影格變成可以點的狀態，不跑 3D']],
     /* before 09-18: user 2026-10-11 supplied 12 entries; merged to 6 with the user (no MSFS name, 9/17 left out) */
     timeline:[['2026-07-13～16','施工視覺化原型','工區三兩側擴建、工區四既有跑道整建，六階段 Blender 示意'],['2026-07-16～23','機場資料解析','機場配置、模型與物件座標'],

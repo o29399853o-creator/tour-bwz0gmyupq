@@ -248,46 +248,18 @@ G.pages.aids=function(){
     destroy(){thr.destroy();end.destroy();sv.destroy();sign.destroy();papi.destroy();window.removeEventListener('scroll',lit)}};
 };
 
-/* ================= 導覽影片 ================= */
-G.pages.film=function(){
-  const route='#/film',F=A.film,CH=F.chap.chapters,dur=F.chap.duration;
-  const root=page('film-page',`${head(route)}
-    <div class="film rv"><div><div class="video-wrap"><video controls playsinline preload="metadata" src="${F.src}"></video></div><div class="chapter-bar"></div></div><ol class="chapters"></ol></div>
-    ${G.pager(route)}${G.footer()}`);
-  const showT=titleIn(root);const v=$('video',root),list=$('.chapters',root),bar=$('.chapter-bar',root);
-  const tip=h('div','cb-tip','<img alt=""><span><small></small><b></b></span>',$('.chapter-bar',root).parentNode);   // chapter preview above the bar
-  const colorOf=c=>{const m=/工區([一二三四])/.exec(c.title);if(m)return G.COL['一二三四'.indexOf(m[1])+1];return c.shot==='S01'||c.shot==='S13'?'#6b7a88':'#ffcc00'};
-  const seek=t=>{v.currentTime=t+.05;v.play().catch(()=>{});if(G.narrow())v.scrollIntoView({behavior:'smooth',block:'center'})};
-  CH.forEach(c=>{if(S.chapterTitles[c.shot])c.title=S.chapterTitles[c.shot]});
-  CH.forEach((c,i)=>{const end=i<CH.length-1?CH[i+1].start:dur;
-    const li=h('li','',`<span class="th">${c.thumb?`<img src="${c.thumb}" alt="" loading="lazy">`:''}<span class="t">${G.fmtT(c.start)}</span></span><span class="n">${c.title.replace('　','<br>')}${c.sub?`<span class="s">${c.sub}</span>`:''}</span>`,list);
-    li.onclick=()=>seek(c.start);li.style.setProperty('--c',colorOf(c));
-    const d=h('div','',null,bar);d.style.flex=String(end-c.start);d.style.background=colorOf(c);d.onclick=()=>seek(c.start);
-    d.addEventListener('mouseenter',()=>{if(c.thumb)$('img',tip).src=c.thumb;$('b',tip).textContent=c.title;$('small',tip).textContent=G.fmtT(c.start);
-      tip.style.left=Math.min(Math.max(d.offsetLeft+d.offsetWidth/2,110),bar.clientWidth-110)+'px';tip.classList.add('on')});
-    d.addEventListener('mouseleave',()=>tip.classList.remove('on'))});
-  const ph=h('div','ph',null,bar);let last=-1;
-  // B: remember where the film was left; offer to continue from there
-  const saved=+G.store.get('filmT')||0;let lastSave=0;
-  if(saved>5&&saved<dur-5){const rb=h('button','resume-film',`▶ 從 ${G.fmtT(saved)} 繼續播放`,$('.video-wrap',root));rb.type='button';
-    rb.onclick=()=>{seek(saved);rb.remove()};v.addEventListener('play',()=>rb.remove(),{once:true})}
-  v.addEventListener('timeupdate',()=>{if(Math.abs(v.currentTime-lastSave)>4){lastSave=v.currentTime;G.store.set('filmT',v.currentTime>dur-5?0:v.currentTime.toFixed(1))}});
-  v.addEventListener('timeupdate',()=>{let i=0;CH.forEach((c,k)=>{if(v.currentTime>=c.start-.05)i=k});ph.style.left=(v.currentTime/dur*100)+'%';if(i===last)return;last=i;
-    $$('li',list).forEach((li,k)=>li.classList.toggle('on',k===i));$$('div:not(.ph)',bar).forEach((d,k)=>d.classList.toggle('on',k===i));
-    const li=list.children[i];if(li)list.scrollTo({top:li.offsetTop-list.clientHeight/2+li.clientHeight/2,behavior:'smooth'})});
-  return {el:root,enter(){showT()},destroy(){v.pause()}};
-};
-
 /* ================= 製作過程 ================= */
 G.pages.making=function(){
   const route='#/making',M=S.making;   // user 2026-10-10: the before / after section ("改了什麼") is removed
+  // 2026-11-04: the process film on top (preload none: nothing of it is fetched until play)
   const root=page('making-page',`${head(route)}
+    <section class="block">${sec('影片',M.film.title,M.film.lead)}<div class="video-wrap rv"><video controls playsinline preload="none" poster="${M.film.poster}" src="${M.film.src}"></video></div></section>
     <section class="block">${sec('流程','從模型到網站','同一套 Blender 模型做出影片，再把影片的影格變成網頁上可以點的互動。')}<div class="pipe-card rv"><svg class="pipe"></svg></div></section>
     <section class="block">${sec('紀錄','時間軸')}<ol class="tl">${M.timeline.map((x,i)=>`<li class="rv" data-d="${i*60}"><time>${x[0]}</time><b>${x[1]}</b>${x[2]?`<span>${x[2]}</span>`:''}</li>`).join('')}</ol></section>
     <section class="block">${sec('工具','分工')}<div class="tools">${M.tools.map((x,i)=>`<div class="tool rv" data-d="${i*90}"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div></section>
     <section class="block">${sec('說明','資料來源與說明')}<dl class="src rv">${M.sources.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('')}</dl></section>
     ${G.pager(route)}${G.footer()}`);
   const showT=titleIn(root);const pipe=G.Pipeline($('.pipe',root),M.flow);
-  return {el:root,enter(){showT();G.onView($('.pipe',root),()=>pipe.play(),.3)},destroy(){}};
+  return {el:root,enter(){showT();G.onView($('.pipe',root),()=>pipe.play(),.3)},destroy(){$('video',root).pause()}};
 };
 })();
