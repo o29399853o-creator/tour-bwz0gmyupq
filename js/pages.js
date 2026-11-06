@@ -15,7 +15,7 @@ G.pager=route=>{const i=G.idx(route),p=S.stops[i-1],n=S.stops[i+1];const chev='<
   return `<nav class="pager">${p?`<a class="prev" href="${p.route}"><small>‹ 上一站</small><b>${nameOf(p)}</b></a>`:'<span></span>'}`+
     (n?`<a class="next" href="${n.route}" style="--zc:${n.zone?G.COL[n.zone]:'#ffcc00'}"><small>下一站　${G.stopNo(i+1)}</small><b>${nameOf(n)}</b><em>${subOf(n)}</em>${chev}</a>`
       :`<a class="next" href="#/"><small>導覽結束</small><b>回到起點</b><em>回到跑道總覽</em>${chev}</a>`)+'</nav>'};
-G.footer=()=>`<footer class="foot">模型為示意，位置依設計展示配準，非測量成果。　<a href="#/" data-replay-intro>重播片頭</a><br>
+G.footer=()=>`<footer class="foot">模型為示意，非測量成果。　<a href="#/" data-replay-intro>重播片頭</a><br>
   飛機模型（示意，非 MSFS 素材）："Boeing 747-100" by Marine, CC BY 4.0／"Boeing-787- Dreamliner" by themaker845, CC BY 4.0<br>
   施工機具模型（示意）："Excavator (CAT)" by sarvesh12／"Road roller truck" by Sidra／"HINO+dump+truck+3d+model" by 3DMODEL，皆 CC BY 4.0（挖土機破碎頭為自製）</footer>`;
 const sec=(kick,title,lead)=>`<h2 class="sec rv"><span class="kick">${kick}</span>${title}</h2>${lead?`<p class="lead rv">${lead}</p>`:''}`;

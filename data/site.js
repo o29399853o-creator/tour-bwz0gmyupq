@@ -232,7 +232,7 @@ window.SITE={
       ['2026-10-07～08','木製圍籬、二號聯絡道黃色 X、覆工板分鏡改版、傍晚燈光',''],['2026-10-09','新片頭動畫、工區四接縫示意、網站規劃與第一期',''],
       ['2026-10-10','影片 v6 完成並驗收合格','4427 格、約 3 分 4 秒；網站全站完成']],
     tools:[['Blender 5.1','模型、算圖、影片輸出（背景執行）'],['Python／Pillow','影格合成、字幕、標註、網站素材'],['HTML／CSS／JavaScript','網站本身，不用外部套件，可離線開啟'],['Claude、Codex','撰寫與檢查腳本、網站程式；所有輸出由承辦人驗收']],
-    sources:[['模型說明','模型為示意，位置依設計展示配準，非測量成果。'],
+    sources:[['模型說明','模型為示意，非測量成果。'],
       ['施工機具模型','"Excavator (CAT)" by sarvesh12, CC BY 4.0；"Road roller truck" by Sidra, CC BY 4.0；"HINO+dump+truck+3d+model" by 3DMODEL, CC BY 4.0（皆 Sketchfab；工區三施工順序用，挖土機破碎頭為自製）'],   // 2026-10-27 before going online
       ['測量儀器模型','"TS02 Leica Total Station Instrument" by Koksan, CC BY 4.0（工區三施工查驗重點「開挖深度」用；腳架、箱尺為自製）'],   // 2026-10-29: details/thick.py
       ['飛機模型','"Boeing 747-100" by Marine, CC BY 4.0；"Boeing-787- Dreamliner" by themaker845, CC BY 4.0'],
