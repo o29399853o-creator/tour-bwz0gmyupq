@@ -36,7 +36,7 @@ window.addEventListener('resize',place);
 function parse(hash){hash=hash||'#/';let m;
   if(hash==='#/'||hash==='#'||hash==='')return {page:'home',route:'#/'};
   if((m=/^#\/zone\/([1-4])$/.exec(hash)))return m[1]==='2'?{page:'zone',param:'2',route:'#/zone/1',focus:2}:{page:'zone',param:m[1],route:hash};   // zone 2: the merged page, scrolled to it
-  m=/^#\/(phase|control|aids|insp|making)$/.exec(hash);if(m)return {page:m[1],route:hash};
+  m=/^#\/(phase|control|aids|insp|film|making)$/.exec(hash);if(m)return {page:m[1],route:hash};
   if(hash==='#/about')return {page:'making',route:'#/making'};
   return {page:'home',route:'#/'}}
 let cur=null,token=0;const ctx={intro:null};
@@ -65,6 +65,7 @@ function prefetch(i){const st=S.stops[i],A=window.ASSETS;if(!st||!A||warm.has(i)
   else if(st.route==='#/phase')L=[...new Set(S.phase.slice(0,2).flatMap(p=>p.img))].map(k=>A.phase[k].img);
   else if(st.route==='#/control')L=[A.control.barrier,A.control.taxiway].flatMap(m=>m.mp4?[m.frames[0]]:m.frames.slice(0,8));
   else if(st.route==='#/aids')L=[A.aids.circuits.r1,A.aids.circuits.r3,A.aids.circuits.all1];
+  else if(st.route==='#/film')L=A.film.chap.chapters.map(c=>c.thumb).filter(Boolean);
   else if(st.route==='#/making')L=[S.making.film.poster];
   L.forEach(s=>{const im=new Image();try{im.fetchPriority='low'}catch(e){}im.decoding='async';im.src=s})}
 window.addEventListener('hashchange',go);
